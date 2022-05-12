@@ -18,65 +18,84 @@ Color PixToCol(const Blomp::Pixel& pixel)
 	return color;
 }
 
-int main(int argc, char** argv)
+int modeQuery()
 {
-	Framebuffer<WIDTH,HEIGHT> fb;
+	Spotify spotify;
+        while (true)
+        {
+                std::string command;
+                std::cout << " >> ";
+                std::getline(std::cin, command);
+                auto response = spotify.exec(command);
+                std::cout << "RESPONSE: " << response.toString() << std::endl;
+
+                std::string query = "";
+                while (true)
+                {
+                        std::cout << " QUERY > ";
+                        std::getline(std::cin, query);
+                        if (query == "q")
+                                break;
+                        bool exists = response.has(query);
+                        std::cout << (exists ? response[query].toString() : " QUERY DOES NOT EXIST!") << std::endl;
+                }
+        }
+
+	return 0;
+}
+
+int modePlayback()
+{
+	Framebuffer<WIDTH, HEIGHT> fb;
 	fb.flush();
-
-	if (argc == 2)
-	{
-		Blomp::Image img(argv[1]);
-		int width = std::min(img.width(), WIDTH);
-		int height = std::min(img.height(), HEIGHT);
-
-		for (int x = 0; x < width; ++x)
-			for (int y = 0; y < height; ++y)
-				fb.set(x, y, PixToCol(img.get(x, y)));
-		fb.flush();
-		return 0;
-	}
 
 	Spotify spotify;
+
+	Response response;
+	int trackPos = 0;
+	int trackLen = 1;
+
 	while (true)
 	{
-		std::string command;
-		std::cout << " >> ";
-		std::getline(std::cin, command);
-		auto response = spotify.exec(command);
-		std::cout << "RESPONSE: " << response.toString() << std::endl;
-	}
-
-	for (int y = 0; y < HEIGHT; ++y)
-		for (int x = 0; x < WIDTH; ++x)
-			fb.set(x, y, { float(x) / WIDTH, float(y) / HEIGHT, 0.0f });
-
-	fb.flush();
-	fb.clear({ 0.0f, 0.0f, 0.0f });
-	sleep(1);
-	fb.flush();
-
-	Touch<WIDTH,HEIGHT,200,3800> t;
-
-	for (;;)
-	{
-		t.fetchToSync();
-
-		TouchPos pos = t.pos();
-
-		if (pos.x < 10 && pos.y < 10 && t.down())
+		response = spotify.exec("spotify.currently_playing()");
+		if (response.has("progress_ms") && response.has("item.duration_ms"))
 		{
+			trackPos = response["progress_ms"].getInteger();
+			trackLen = response["item.duration_ms"].getInteger();
+
 			fb.clear({ 0.0f, 0.0f, 0.0f });
-			for (int y = 0; y < 10; ++y)
-				for (int x = 0; x < 10; ++x)
-					fb.set(x, y, { 1.0f, 0.0f, 0.0f });
-			fb.flush();
+			fb.drawRect(0, 0, WIDTH * trackPos / trackLen, HEIGHT, { 0.7f, 0.7f, 0.7f });
 		}
-		else if (t.down())
+		else
 		{
-			fb.set(pos.x, pos.y, { 1.0f, 1.0f, 1.0f });
-			fb.flush();
+			fb.clear({ 1.0f, 0.0f, 0.0f });
 		}
+
+		fb.flush();
+
+		sleep(2);
 	}
 
 	return 0;
+}
+
+int main(int argc, char** argv)
+{
+	if (argc != 2)
+	{
+		std::cout << "Usage: " << argv[0] << " [mode]" << std::endl;
+		return 1;
+	}
+
+	std::string mode = argv[1];
+
+	if (mode == "query")
+		return modeQuery();
+
+	if (mode == "playback")
+		return modePlayback();
+
+	std::cout << "Unknown mode '" << mode << "'!" << std::endl;
+
+	return 1;
 }

@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 #include <cstring>
+#include <vector>
 
 Response::Response(const std::string& str)
 	: Response(str.c_str())
@@ -119,6 +120,50 @@ std::string Response::toString() const
 	}
 	}
 	return str;
+}
+
+bool Response::has(const std::string& key) const
+{
+	uint64_t pos = key.find('.');
+	auto first = key.substr(0, pos);
+
+	bool isLastKey = pos == std::string::npos;
+
+	try
+	{
+		uint64_t index = std::stoll(first);
+		if (!has(index))
+			return false;
+		if (!isLastKey && !m_list[index].has(key.substr(pos + 1)))
+			return false;
+	}
+	catch (std::invalid_argument)
+	{
+		if (m_dict.find(first) == m_dict.end())
+			return false;
+		if (!isLastKey && !m_dict.find(first)->second.has(key.substr(pos + 1)))
+			return false;
+	}
+
+	return true;
+}
+
+Response& Response::operator[](const std::string& key)
+{
+	uint64_t pos = key.find('.');
+	auto first = key.substr(0, pos);
+
+	bool isLastKey = pos == std::string::npos;
+
+	try
+	{
+		uint64_t index = std::stoll(first);
+		return isLastKey ? m_list[index] : m_list[index][key.substr(pos + 1)];
+	}
+	catch (std::invalid_argument)
+	{
+		return isLastKey ? m_dict.find(first)->second : m_dict.find(first)->second[key.substr(pos + 1)];
+	}
 }
 
 Response::Token Response::peekToken(const char* str)

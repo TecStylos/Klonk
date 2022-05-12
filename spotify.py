@@ -39,16 +39,16 @@ def recvMessage():
 	return message.decode("utf-8")
 
 def sendMessage(message):
-	msgSize = struct.pack("<I", len(message))
-	WRITE_PIPE.write(msgSize)
-	WRITE_PIPE.write(message.encode("utf-8"))
+	encoded = message.encode("utf-8")
+	encodedSize = struct.pack("<I", len(encoded))
+	WRITE_PIPE.write(encodedSize)
+	WRITE_PIPE.write(encoded)
 
 if __name__ == "__main__":
 	spotify = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=" ".join(scopes)))
 	result = ""
 	while True:
 		command = recvMessage()
-		print("RECEIVED COMMAND:", command)
 		try:
 			exec(f"result = {command}", globals(), locals())
 		except KeyboardInterrupt:
@@ -57,5 +57,12 @@ if __name__ == "__main__":
 		except BaseException as err:
 			print("EXEC ERROR")
 			print(err)
-			result = err
+			result = str(err)
+		if isinstance(result, (list, dict, int, bool, type(None))):
+			result = str(result)
+		elif isinstance(result, str):
+			result = f"'{result}'"
+		else:
+			result = f"'{result}'"
+		#print(f"---- RESULT ----\n{result}\n----------------")
 		sendMessage(str(result))

@@ -23,12 +23,24 @@ private:
 	Response(Token tok, const char* str, uint64_t tokReadSize = 0);
 public:
 	ResponseType getType() const { return m_type; }
+	bool isNone() const { return m_type == ResponseType::None; }
+	bool isBoolean() const { return m_type == ResponseType::Boolean; }
+	bool isInteger() const { return m_type == ResponseType::Integer; }
+	bool isString() const { return m_type == ResponseType::String; }
+	bool isList() const { return m_type == ResponseType::List; }
+	bool isDict() const { return m_type == ResponseType::Dict; }
 	const std::string& getString() const { return m_string; }
 	bool getBoolean() const { return m_boolean; }
 	int64_t getInteger() const { return m_integer; }
 	const std::vector<Response> getList() const { return m_list; }
 	const std::map<std::string, Response> getDict() const { return m_dict; }
 	std::string toString() const;
+public:
+	uint64_t size() const { return m_list.size(); }
+	bool has(uint64_t index) const { return index < size(); }
+	bool has(const std::string& key) const;
+	Response& operator[](uint64_t index) { return m_list[index]; }
+	Response& operator[](const std::string& key);
 private:
 	static Token peekToken(const char* str);
         static const char* readToken(const char* str, Token* pToken);

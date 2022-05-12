@@ -18,6 +18,9 @@ public:
 	Color get(int x, int y) const;
 	void clear(const Color& color);
 	void flush();
+public:
+	void drawLine(int x1, int y1, int x2, int y2, const Color& color);
+	void drawRect(int x, int y, int w, int h, const Color& color);
 private:
 	int getIndex(int x, int y) const;
 	short toShort(const Color& color) const;
@@ -58,6 +61,52 @@ void Framebuffer<W,H>::flush()
 	m_file.seekp(std::ios::beg);
 	m_file.write((const char*)m_buff.data(), W * H * sizeof(short));
 	m_file.flush();
+}
+
+template <int W, int H>
+void Framebuffer<W,H>::drawLine(int x1, int y1, int x2, int y2, const Color& color)
+{
+	short s = toShort(color);
+
+	int dx = x2 - x1;
+	int dy = y2 - y1;
+
+	int nSteps = std::max(std::abs(dx), std::abs(dy));
+	if (nSteps == 0) nSteps = 1;
+
+	for (int step = 0; step < nSteps; ++step)
+	{
+		int x = x1 + dx * step / nSteps;
+		if (x < 0 || x >= W)
+			continue;
+		int y = y1 + dy * step / nSteps;
+		if (y < 0 || y >= H)
+			continue;
+		m_buff[getIndex(x, y)] = s;
+	}
+}
+
+template <int W, int H>
+void Framebuffer<W,H>::drawRect(int x, int y, int w, int h, const Color& color)
+{
+	short s = toShort(color);
+	if (x < 0)
+	{
+		w += x;
+		x = 0;
+	}
+	if (y < 0)
+	{
+		h += y;
+		y = 0;
+	}
+
+	int xe = std::min(W, x + w);
+	int ye = std::min(H, y + h);
+
+	for (int yc = y; yc < ye; ++yc)
+		for (int xc = x; xc < xe; ++xc)
+			m_buff[getIndex(xc, yc)] = s;
 }
 
 template <int W, int H>
