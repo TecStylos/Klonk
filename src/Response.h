@@ -1,0 +1,43 @@
+#pragma once
+
+#include <string>
+#include <vector>
+#include <map>
+
+enum class ResponseType { None, Boolean, Integer, String, List, Dict };
+
+class Response
+{
+private:
+	struct Token
+        {
+                enum class Type { None, Boolean, Integer, String, ListBegin, ListEnd, DictBegin, DictEnd, ElemSeparator, PairSeparator };
+                Type type;
+                std::string value;
+        };
+public:
+	Response() = default;
+	Response(const std::string& str);
+private:
+	Response(const char* str);
+	Response(Token tok, const char* str, uint64_t tokReadSize = 0);
+public:
+	ResponseType getType() const { return m_type; }
+	const std::string& getString() const { return m_string; }
+	bool getBoolean() const { return m_boolean; }
+	int64_t getInteger() const { return m_integer; }
+	const std::vector<Response> getList() const { return m_list; }
+	const std::map<std::string, Response> getDict() const { return m_dict; }
+	std::string toString() const;
+private:
+	static Token peekToken(const char* str);
+        static const char* readToken(const char* str, Token* pToken);
+private:
+	uint64_t m_numRead = 0;
+	ResponseType m_type = ResponseType::None;
+	bool m_boolean = false;
+	int64_t m_integer = 0;
+	std::string m_string = "";
+	std::vector<Response> m_list = {};
+	std::map<std::string, Response> m_dict = {};
+};
