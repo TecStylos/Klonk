@@ -3,10 +3,9 @@
 #include <vector>
 #include <fstream>
 
-struct Color
-{
-	float r, g, b;
-};
+#include "Image.h"
+
+typedef Pixel Color;
 
 template <int W, int H>
 class Framebuffer
@@ -21,6 +20,7 @@ public:
 public:
 	void drawLine(int x1, int y1, int x2, int y2, const Color& color);
 	void drawRect(int x, int y, int w, int h, const Color& color);
+	void drawImage(int x, int y, const Image& img);
 private:
 	int getIndex(int x, int y) const;
 	short toShort(const Color& color) const;
@@ -107,6 +107,20 @@ void Framebuffer<W,H>::drawRect(int x, int y, int w, int h, const Color& color)
 	for (int yc = y; yc < ye; ++yc)
 		for (int xc = x; xc < xe; ++xc)
 			m_buff[getIndex(xc, yc)] = s;
+}
+
+template <int W, int H>
+void Framebuffer<W, H>::drawImage(int x, int y, const Image& img)
+{
+	int w = std::min(img.width(), W - x);
+	int h = std::min(img.height(), H - y);
+
+	int bx = x < 0 ? -x : 0;
+	int by = y < 0 ? -y : 0;
+
+	for (int oy = by; oy < h; ++oy)
+		for (int ox = bx; ox < w; ++ox)
+			set(x + ox, y + oy, img(ox, oy));
 }
 
 template <int W, int H>

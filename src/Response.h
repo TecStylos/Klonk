@@ -39,8 +39,8 @@ public:
 	uint64_t size() const { return m_list.size(); }
 	bool has(uint64_t index) const { return index < size(); }
 	bool has(const std::string& key) const;
-	Response& operator[](uint64_t index) { return m_list[index]; }
-	Response& operator[](const std::string& key);
+	const Response& operator[](uint64_t index) const { return m_list[index]; }
+	const Response& operator[](const std::string& key) const;
 private:
 	static Token peekToken(const char* str);
         static const char* readToken(const char* str, Token* pToken);

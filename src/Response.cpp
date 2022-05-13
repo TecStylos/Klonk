@@ -148,7 +148,7 @@ bool Response::has(const std::string& key) const
 	return true;
 }
 
-Response& Response::operator[](const std::string& key)
+const Response& Response::operator[](const std::string& key) const
 {
 	uint64_t pos = key.find('.');
 	auto first = key.substr(0, pos);

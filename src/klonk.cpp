@@ -9,16 +9,7 @@
 #define WIDTH 320
 #define HEIGHT 240
 
-Color PixToCol(const Blomp::Pixel& pixel)
-{
-	Color color;
-	color.r = pixel.r;
-	color.g = pixel.g;
-	color.b = pixel.b;
-	return color;
-}
-
-int modeQuery()
+int modeQuery(int argc, char** argv)
 {
 	Spotify spotify;
         while (true)
@@ -26,6 +17,9 @@ int modeQuery()
                 std::string command;
                 std::cout << " >> ";
                 std::getline(std::cin, command);
+		if (command == "q")
+			break;
+
                 auto response = spotify.exec(command);
                 std::cout << "RESPONSE: " << response.toString() << std::endl;
 
@@ -44,7 +38,35 @@ int modeQuery()
 	return 0;
 }
 
-int modePlayback()
+std::string largestImageURL(const Response& response, const std::string& imagesPath)
+{
+	if (!response.has(imagesPath))
+		return "";
+	auto& imgs = response[imagesPath];
+
+	const Response* largest = nullptr;
+
+	for (int i = 0; i < imgs.size(); ++i)
+	{
+		auto& img = imgs[i];
+
+		if (!largest)
+			largest = &img;
+
+		if (!img["width"].isInteger())
+			continue;
+
+		if (!(*largest)["width"].isInteger() || img["width"].getInteger() > (*largest)["width"].getInteger())
+			largest = &img;
+	}
+
+	if (!largest)
+		return "";
+
+	return (*largest)["url"].getString();
+}
+
+int modePlayback(int argc, char** argv)
 {
 	Framebuffer<WIDTH, HEIGHT> fb;
 	fb.flush();
@@ -54,10 +76,19 @@ int modePlayback()
 	Response response;
 	int trackPos = 0;
 	int trackLen = 1;
+	std::string imgURL = "";
 
 	while (true)
 	{
 		response = spotify.exec("spotify.currently_playing()");
+
+		auto newImgURL = largestImageURL(response, "item.album.images");
+		if (!newImgURL.empty() && imgURL != newImgURL)
+		{
+			imgURL = newImgURL;
+			std::cout << "NEW COVER! - " << spotify.exec("urllib.request.urlretrieve('" + imgURL + "', 'data/cover.jpg')").toString() << std::endl;
+		}
+
 		if (response.has("progress_ms") && response.has("item.duration_ms"))
 		{
 			trackPos = response["progress_ms"].getInteger();
@@ -79,21 +110,50 @@ int modePlayback()
 	return 0;
 }
 
+int modeImage(int argc, char** argv)
+{
+	if (argc < 3)
+	{
+		std::cout << "Usage (image): [imgPath] [x] [y]" << std::endl;
+		return 1;
+	}
+
+	std::string path = argv[0];
+	int x = std::stoi(argv[1]);
+	int y = std::stoi(argv[2]);
+
+	Framebuffer<WIDTH, HEIGHT> fb;
+	fb.flush();
+
+	Image img(path);
+
+	fb.drawImage(x, y, img);
+	fb.flush();
+
+	return 0;
+}
+
 int main(int argc, char** argv)
 {
-	if (argc != 2)
+	if (argc < 2)
 	{
-		std::cout << "Usage: " << argv[0] << " [mode]" << std::endl;
+		std::cout << "Usage: " << argv[0] << " [mode] [args*]" << std::endl;
 		return 1;
 	}
 
 	std::string mode = argv[1];
 
+	argc -= 2;
+	argv += 2;
+
 	if (mode == "query")
-		return modeQuery();
+		return modeQuery(argc, argv);
 
 	if (mode == "playback")
-		return modePlayback();
+		return modePlayback(argc, argv);
+
+	if (mode == "image")
+		return modeImage(argc, argv);
 
 	std::cout << "Unknown mode '" << mode << "'!" << std::endl;
 
