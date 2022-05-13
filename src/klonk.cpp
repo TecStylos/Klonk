@@ -1,10 +1,8 @@
 #include <iostream>
 
-#include "framebuffer.h"
-#include "touch.h"
 #include "spotify.h"
 
-#include "Image.h"
+#include "UserInterface.h"
 
 #define WIDTH 320
 #define HEIGHT 240
@@ -48,7 +46,7 @@ std::string getImageURL(const Response& response, const std::string& imagesPath)
 
 int modePlayback(int argc, char** argv)
 {
-	Framebuffer<WIDTH, HEIGHT> fb;
+	Framebuffer fb(WIDTH, HEIGHT);
 	fb.flush();
 
 	Spotify spotify;
@@ -58,12 +56,15 @@ int modePlayback(int argc, char** argv)
 	int trackPos = 0;
 	int trackLen = 1;
 	std::string coverURL = "";
-	Image coverImg(128, 128);
 	Pixel accentColor = { 0.5f, 0.5f, 0.5f };
 	const Pixel seekbarColorFilled = { 0.1f, 0.7f, 0.2f };
 	const Pixel seekbarColorEmpty = { 0.2f, 0.2f, 0.2f };
 	const int seekbarHeight = 7;
 	const int seekbarWidth = 280;
+
+	UISpace uiRoot(0, 0, WIDTH, HEIGHT);
+
+	auto uiCover = uiRoot.addElement<UIImage>(96, 56, 128, 128);
 
 	while (true)
 	{
@@ -77,12 +78,13 @@ int modePlayback(int argc, char** argv)
 			coverURL = newImgURL;
 			if (spotify.exec("urllib.request.urlretrieve('" + coverURL + "', 'data/cover.jpg')").toString().find("data/cover.jpg") != std::string::npos)
 			{
-				coverImg.downscaleFrom(Image("data/cover.jpg"));
+				auto& img = uiCover->getImage();
+				img.downscaleFrom(Image("data/cover.jpg"));
 				accentColor = { 0.0f, 0.0f, 0.0f };
-				for (int y = 0; y < coverImg.height(); ++y)
-					for (int x = 0; x < coverImg.width(); ++x)
-						accentColor += coverImg.getNC(x, y);
-				accentColor /= { float(coverImg.width() * coverImg.height()) };
+				for (int y = 0; y < img.height(); ++y)
+					for (int x = 0; x < img.width(); ++x)
+						accentColor += img.getNC(x, y);
+				accentColor /= { float(img.width() * img.height()) };
 			}
 			else
 				std::cout << "[ ERR ]: Could not download " << coverURL << std::endl;
@@ -104,7 +106,7 @@ int modePlayback(int argc, char** argv)
 		}
 
 		fb.drawRect(85, 45, 150, 150, accentColor);
-		fb.drawImage(96, 56, coverImg);
+		uiRoot.onRender(fb);
 		fb.flush();
 
 		sleep(2);
@@ -125,7 +127,7 @@ int modeImage(int argc, char** argv)
 	int x = std::stoi(argv[1]);
 	int y = std::stoi(argv[2]);
 
-	Framebuffer<WIDTH, HEIGHT> fb;
+	Framebuffer fb(WIDTH, HEIGHT);
 	fb.flush();
 
 	Image img(128, 128);

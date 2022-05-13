@@ -11,6 +11,8 @@ add_executable(
 	"src/Image.cpp"
 	"src/spotify.cpp"
 	"src/Response.cpp"
+	"src/framebuffer.cpp"
+	"src/UserInterface.cpp"
 	"src/stb_image.cpp"
 	"src/stb_image_write.cpp"
 )
