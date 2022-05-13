@@ -120,7 +120,7 @@ void Framebuffer<W, H>::drawImage(int x, int y, const Image& img)
 
 	for (int oy = by; oy < h; ++oy)
 		for (int ox = bx; ox < w; ++ox)
-			set(x + ox, y + oy, img(ox, oy));
+			set(x + ox, y + oy, img.getNC(ox, oy));
 }
 
 template <int W, int H>

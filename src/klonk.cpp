@@ -76,17 +76,19 @@ int modePlayback(int argc, char** argv)
 	Response response;
 	int trackPos = 0;
 	int trackLen = 1;
-	std::string imgURL = "";
+	std::string coverURL = "";
+	Image coverImg(128, 128);
 
 	while (true)
 	{
 		response = spotify.exec("spotify.currently_playing()");
 
 		auto newImgURL = largestImageURL(response, "item.album.images");
-		if (!newImgURL.empty() && imgURL != newImgURL)
+		if (!newImgURL.empty() && coverURL != newImgURL)
 		{
-			imgURL = newImgURL;
-			std::cout << "NEW COVER! - " << spotify.exec("urllib.request.urlretrieve('" + imgURL + "', 'data/cover.jpg')").toString() << std::endl;
+			coverURL = newImgURL;
+			std::cout << "NEW COVER! - " << spotify.exec("urllib.request.urlretrieve('" + coverURL + "', 'data/cover.jpg')").toString() << std::endl;
+			coverImg.from(Image("data/cover.jpg"));
 		}
 
 		if (response.has("progress_ms") && response.has("item.duration_ms"))
@@ -101,6 +103,8 @@ int modePlayback(int argc, char** argv)
 		{
 			fb.clear({ 1.0f, 0.0f, 0.0f });
 		}
+
+		fb.drawImage(96, 56, coverImg);
 
 		fb.flush();
 
@@ -125,7 +129,8 @@ int modeImage(int argc, char** argv)
 	Framebuffer<WIDTH, HEIGHT> fb;
 	fb.flush();
 
-	Image img(path);
+	Image img(128, 128);
+	img.from(Image(path));
 
 	fb.drawImage(x, y, img);
 	fb.flush();

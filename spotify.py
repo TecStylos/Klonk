@@ -58,11 +58,13 @@ if __name__ == "__main__":
 			print("EXEC ERROR")
 			print(err)
 			result = str(err)
-		if isinstance(result, (list, dict, int, bool, type(None))):
+
+		if not isinstance(result, (list, dict, int, bool, type(None))):
 			result = str(result)
-		elif isinstance(result, str):
+
+		if isinstance(result, str):
+			result = result.replace("'", "\"")
 			result = f"'{result}'"
-		else:
-			result = f"'{result}'"
+
 		#print(f"---- RESULT ----\n{result}\n----------------")
 		sendMessage(str(result))

@@ -56,6 +56,13 @@ Image::Image(const std::string& filename)
     stbi_image_free(data);
 }
 
+void Image::from(const Image& src)
+{
+    for (int y = 0; y < m_height; ++y)
+        for (int x = 0; x < m_width; ++x)
+            get(x, y) = src.get(x * src.width() / m_width, y * src.height() / m_height);
+}
+
 void Image::save(const std::string& filename) const
 {
     auto type = ImgTypeFromFilename(filename);

@@ -44,6 +44,8 @@ public:
     Pixel& operator()(int x, int y);
     const Pixel& operator()(int x, int y) const;
 public:
+    void from(const Image& src);
+public:
     void save(const std::string& filename) const;
 private:
     int m_width;
