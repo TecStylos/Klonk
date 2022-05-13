@@ -38,32 +38,12 @@ int modeQuery(int argc, char** argv)
 	return 0;
 }
 
-std::string largestImageURL(const Response& response, const std::string& imagesPath)
+std::string getImageURL(const Response& response, const std::string& imagesPath)
 {
-	if (!response.has(imagesPath))
-		return "";
-	auto& imgs = response[imagesPath];
-
-	const Response* largest = nullptr;
-
-	for (int i = 0; i < imgs.size(); ++i)
-	{
-		auto& img = imgs[i];
-
-		if (!largest)
-			largest = &img;
-
-		if (!img["width"].isInteger())
-			continue;
-
-		if (!(*largest)["width"].isInteger() || img["width"].getInteger() > (*largest)["width"].getInteger())
-			largest = &img;
-	}
-
-	if (!largest)
+	if (!response.has(imagesPath + ".0.url"))
 		return "";
 
-	return (*largest)["url"].getString();
+	return response(imagesPath + ".0.url").getString();
 }
 
 int modePlayback(int argc, char** argv)
@@ -78,34 +58,40 @@ int modePlayback(int argc, char** argv)
 	int trackLen = 1;
 	std::string coverURL = "";
 	Image coverImg(128, 128);
+	Pixel seekbarColor = { 0.5f, 0.5f, 0.5f };
 
 	while (true)
 	{
+		fb.clear({ 0.0f, 0.0f, 0.0f });
+
 		response = spotify.exec("spotify.currently_playing()");
 
-		auto newImgURL = largestImageURL(response, "item.album.images");
+		auto newImgURL = getImageURL(response, "item.album.images");
 		if (!newImgURL.empty() && coverURL != newImgURL)
 		{
 			coverURL = newImgURL;
-			std::cout << "NEW COVER! - " << spotify.exec("urllib.request.urlretrieve('" + coverURL + "', 'data/cover.jpg')").toString() << std::endl;
-			coverImg.from(Image("data/cover.jpg"));
+			if (spotify.exec("urllib.request.urlretrieve('" + coverURL + "', 'data/cover.jpg')").toString().find("data/cover.jpg") != std::string::npos)
+			{
+				coverImg.from(Image("data/cover.jpg"));
+				seekbarColor = { 0.0f, 0.0f, 0.0f };
+				for (int y = 0; y < coverImg.height(); ++y)
+					for (int x = 0; x < coverImg.width(); ++x)
+						seekbarColor += coverImg.getNC(x, y);
+				seekbarColor /= { coverImg.width() * coverImg.height() };
+			}
+			else
+				std::cout << "[ ERR ]: Could not download " << coverURL << std::endl;
 		}
 
 		if (response.has("progress_ms") && response.has("item.duration_ms"))
-		{
-			trackPos = response["progress_ms"].getInteger();
-			trackLen = response["item.duration_ms"].getInteger();
-
-			fb.clear({ 0.0f, 0.0f, 0.0f });
-			fb.drawRect(0, 0, WIDTH * trackPos / trackLen, HEIGHT, { 0.7f, 0.7f, 0.7f });
-		}
+			fb.drawRect(0, 0, WIDTH * response["progress_ms"].getInteger() / response["item.duration_ms"].getInteger(), HEIGHT, seekbarColor);
 		else
 		{
+			std::cout << "[ ERR ]: Invalid response:\n    " << response.toString() << std::endl;
 			fb.clear({ 1.0f, 0.0f, 0.0f });
 		}
 
 		fb.drawImage(96, 56, coverImg);
-
 		fb.flush();
 
 		sleep(2);
