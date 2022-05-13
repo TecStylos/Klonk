@@ -44,97 +44,115 @@ std::string getImageURL(const Response& response, const std::string& imagesPath)
 	return response[imagesPath + ".0.url"].getString();
 }
 
+Pixel getAvgColor(const Image& img)
+{
+	Pixel avgColor = { 0.0f, 0.0f, 0.0f };
+	for (int y = 0; y < img.height(); ++y)
+		for (int x = 0; x < img.width(); ++x)
+			avgColor += img.getNC(x, y);
+	return avgColor / Pixel(float(img.width() * img.height()));
+}
+
+struct UIInfo
+{
+	std::string coverURL = "";
+	int trackPos = 0;
+	int trackLen = 1;
+	Pixel accentColor = { 0.5f };
+	Spotify spotify;
+};
+
+#define makeUIInfo() UIInfo& uiInfo = *(UIInfo*)pData
+
 int modePlayback(int argc, char** argv)
 {
 	Framebuffer fb(WIDTH, HEIGHT);
 	fb.flush();
 
-	Spotify spotify;
-
 	Response response;
 
-	int trackPos = 0;
-	int trackLen = 1;
-	std::string coverURL = "";
-	Pixel accentColor = { 0.5f, 0.5f, 0.5f };
-	const Pixel seekbarColorFilled = { 0.1f, 0.7f, 0.2f };
-	const Pixel seekbarColorEmpty = { 0.2f, 0.2f, 0.2f };
-	const int seekbarHeight = 7;
-	const int seekbarWidth = 280;
+	UIInfo uiInfo;
 
 	UISpace uiRoot(0, 0, WIDTH, HEIGHT);
 
-	auto uiCover = uiRoot.addElement<UIImage>(96, 56, 128, 128);
+	auto uiTrackView = uiRoot.addElement<UISpace>(85, 45, 150, 150);
+	auto uiTrackViewAccent = uiTrackView->addElement<UIElement>(0, 0, 150, 150);
+	uiTrackViewAccent->setCbOnRender(
+		[](const UIElement* pElem, Framebuffer& fb, void* pData)
+		{
+			makeUIInfo();
+			fb.drawRect(
+				pElem->posX(),
+				pElem->posY(),
+				pElem->width(),
+				pElem->height(),
+				uiInfo.accentColor
+			);
+		}
+	);
+	auto uiCover = uiTrackView->addElement<UIImage>(11, 11, 128, 128);
+	uiCover->setCbOnDown(
+		[](UIElement* pElem, int x, int y, void* pData)
+		{
+			makeUIInfo();
+			if (!pElem->isHit(x, y))
+				return false;
+
+			uiInfo.spotify.exec("spotify.pause_playback()");
+
+			return true;
+		}
+	);
+
+	auto uiSeekbar = uiRoot.addElement<UIElement>(20, 218, 280, 7);
+	uiSeekbar->setCbOnRender(
+		[](const UIElement* pElem, Framebuffer& fb, void* pData)
+		{
+			makeUIInfo();
+			int x = pElem->posX();
+			int y = pElem->posY();
+			int wFilled = pElem->width() * uiInfo.trackPos / uiInfo.trackLen;
+			int wEmpty = pElem->width() - wFilled;
+			fb.drawRect(x, y, wFilled, pElem->height(), { 0.1f, 0.7f, 0.2f });
+			fb.drawRect(x + wFilled, y, wEmpty, pElem->height(), { 0.2f });
+		}
+	);
 
 	while (true)
 	{
-		fb.clear({ 0.0f, 0.0f, 0.0f });
-
-		response = spotify.exec("spotify.currently_playing()");
+		response = uiInfo.spotify.exec("spotify.currently_playing()");
 
 		auto newImgURL = getImageURL(response, "item.album.images");
-		if (!newImgURL.empty() && coverURL != newImgURL)
+		if (!newImgURL.empty() && uiInfo.coverURL != newImgURL)
 		{
-			coverURL = newImgURL;
-			if (spotify.exec("urllib.request.urlretrieve('" + coverURL + "', 'data/cover.jpg')").toString().find("data/cover.jpg") != std::string::npos)
+			uiInfo.coverURL = newImgURL;
+			if (uiInfo.spotify.exec("urllib.request.urlretrieve('" + uiInfo.coverURL + "', 'data/cover.jpg')").toString().find("data/cover.jpg") != std::string::npos)
 			{
-				auto& img = uiCover->getImage();
-				img.downscaleFrom(Image("data/cover.jpg"));
-				accentColor = { 0.0f, 0.0f, 0.0f };
-				for (int y = 0; y < img.height(); ++y)
-					for (int x = 0; x < img.width(); ++x)
-						accentColor += img.getNC(x, y);
-				accentColor /= { float(img.width() * img.height()) };
+				uiCover->getImage().downscaleFrom(Image("data/cover.jpg"));
+				uiInfo.accentColor = getAvgColor(uiCover->getImage());
 			}
 			else
-				std::cout << "[ ERR ]: Could not download " << coverURL << std::endl;
+				std::cout << "[ ERR ]: Could not download " << uiInfo.coverURL << std::endl;
 		}
 
 		if (response.has("progress_ms") && response.has("item.duration_ms"))
 		{
-			int x = (WIDTH - seekbarWidth) / 2;
-			int y = 195 + 45 / 2 - seekbarHeight / 2;
-			int widthFilled = seekbarWidth * response["progress_ms"].getInteger() / response["item.duration_ms"].getInteger();
-			int widthEmpty = seekbarWidth - widthFilled;
-			fb.drawRect(x, y, widthFilled, seekbarHeight, seekbarColorFilled);
-			fb.drawRect(x + widthFilled, y, widthEmpty, seekbarHeight, seekbarColorEmpty);
+			uiInfo.trackPos = response["progress_ms"].getInteger();
+			uiInfo.trackLen = response["item.duration_ms"].getInteger();
 		}
 		else
 		{
 			std::cout << "[ ERR ]: Invalid response:\n    " << response.toString() << std::endl;
-			fb.clear({ 1.0f, 0.0f, 0.0f });
 		}
 
-		fb.drawRect(85, 45, 150, 150, accentColor);
-		uiRoot.onRender(fb);
+		uiRoot.onUpdate(&uiInfo);
+
+		fb.clear(uiInfo.accentColor * Pixel(0.2f));
+		uiRoot.onRender(fb, &uiInfo);
 		fb.flush();
 
 		sleep(2);
 	}
-
-	return 0;
-}
-
-int modeImage(int argc, char** argv)
-{
-	if (argc < 3)
-	{
-		std::cout << "Usage (image): [imgPath] [x] [y]" << std::endl;
-		return 1;
-	}
-
-	std::string path = argv[0];
-	int x = std::stoi(argv[1]);
-	int y = std::stoi(argv[2]);
-
-	Framebuffer fb(WIDTH, HEIGHT);
-	fb.flush();
-
-	Image img(128, 128);
-	img.downscaleFrom(Image(path));
-
-	fb.drawImage(x, y, img);
-	fb.flush();
 
 	return 0;
 }
@@ -157,9 +175,6 @@ int main(int argc, char** argv)
 
 	if (mode == "playback")
 		return modePlayback(argc, argv);
-
-	if (mode == "image")
-		return modeImage(argc, argv);
 
 	std::cout << "Unknown mode '" << mode << "'!" << std::endl;
 
