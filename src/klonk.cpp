@@ -43,7 +43,7 @@ std::string getImageURL(const Response& response, const std::string& imagesPath)
 	if (!response.has(imagesPath + ".0.url"))
 		return "";
 
-	return response(imagesPath + ".0.url").getString();
+	return response[imagesPath + ".0.url"].getString();
 }
 
 int modePlayback(int argc, char** argv)
@@ -54,11 +54,16 @@ int modePlayback(int argc, char** argv)
 	Spotify spotify;
 
 	Response response;
+
 	int trackPos = 0;
 	int trackLen = 1;
 	std::string coverURL = "";
 	Image coverImg(128, 128);
-	Pixel seekbarColor = { 0.5f, 0.5f, 0.5f };
+	Pixel accentColor = { 0.5f, 0.5f, 0.5f };
+	const Pixel seekbarColorFilled = { 0.1f, 0.7f, 0.2f };
+	const Pixel seekbarColorEmpty = { 0.2f, 0.2f, 0.2f };
+	const int seekbarHeight = 7;
+	const int seekbarWidth = 280;
 
 	while (true)
 	{
@@ -72,25 +77,33 @@ int modePlayback(int argc, char** argv)
 			coverURL = newImgURL;
 			if (spotify.exec("urllib.request.urlretrieve('" + coverURL + "', 'data/cover.jpg')").toString().find("data/cover.jpg") != std::string::npos)
 			{
-				coverImg.from(Image("data/cover.jpg"));
-				seekbarColor = { 0.0f, 0.0f, 0.0f };
+				coverImg.downscaleFrom(Image("data/cover.jpg"));
+				accentColor = { 0.0f, 0.0f, 0.0f };
 				for (int y = 0; y < coverImg.height(); ++y)
 					for (int x = 0; x < coverImg.width(); ++x)
-						seekbarColor += coverImg.getNC(x, y);
-				seekbarColor /= { coverImg.width() * coverImg.height() };
+						accentColor += coverImg.getNC(x, y);
+				accentColor /= { float(coverImg.width() * coverImg.height()) };
 			}
 			else
 				std::cout << "[ ERR ]: Could not download " << coverURL << std::endl;
 		}
 
 		if (response.has("progress_ms") && response.has("item.duration_ms"))
-			fb.drawRect(0, 0, WIDTH * response["progress_ms"].getInteger() / response["item.duration_ms"].getInteger(), HEIGHT, seekbarColor);
+		{
+			int x = (WIDTH - seekbarWidth) / 2;
+			int y = 195 + 45 / 2 - seekbarHeight / 2;
+			int widthFilled = seekbarWidth * response["progress_ms"].getInteger() / response["item.duration_ms"].getInteger();
+			int widthEmpty = seekbarWidth - widthFilled;
+			fb.drawRect(x, y, widthFilled, seekbarHeight, seekbarColorFilled);
+			fb.drawRect(x + widthFilled, y, widthEmpty, seekbarHeight, seekbarColorEmpty);
+		}
 		else
 		{
 			std::cout << "[ ERR ]: Invalid response:\n    " << response.toString() << std::endl;
 			fb.clear({ 1.0f, 0.0f, 0.0f });
 		}
 
+		fb.drawRect(85, 45, 150, 150, accentColor);
 		fb.drawImage(96, 56, coverImg);
 		fb.flush();
 
@@ -116,7 +129,7 @@ int modeImage(int argc, char** argv)
 	fb.flush();
 
 	Image img(128, 128);
-	img.from(Image(path));
+	img.downscaleFrom(Image(path));
 
 	fb.drawImage(x, y, img);
 	fb.flush();

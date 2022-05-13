@@ -56,11 +56,25 @@ Image::Image(const std::string& filename)
     stbi_image_free(data);
 }
 
-void Image::from(const Image& src)
+void Image::downscaleFrom(const Image& src)
 {
+    int sampleWidth = src.width() / width();
+    int sampleHeight = src.height() / height();
+    if (!sampleWidth || !sampleHeight)
+        throw std::runtime_error("Image::downscaleFrom cannot upscale images!");
+    float sampleCount = float(sampleWidth * sampleHeight);
     for (int y = 0; y < m_height; ++y)
+    {
         for (int x = 0; x < m_width; ++x)
-            get(x, y) = src.get(x * src.width() / m_width, y * src.height() / m_height);
+        {
+            Pixel color = { 0.0f };
+            for (int dy = 0; dy < sampleHeight; ++dy)
+                for (int dx = 0; dx < sampleWidth; ++dx)
+                    color += src.getNC(x * sampleWidth + dx, y * sampleWidth + dy);
+            color /= sampleCount;
+            getNC(x, y) = color;
+        }
+    }
 }
 
 void Image::save(const std::string& filename) const

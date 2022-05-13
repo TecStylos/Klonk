@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <stdexcept>
+#include <cmath>
 
 #include "stb_image.h"
 
@@ -44,7 +45,7 @@ public:
     Pixel& operator()(int x, int y);
     const Pixel& operator()(int x, int y) const;
 public:
-    void from(const Image& src);
+    void downscaleFrom(const Image& src);
 public:
     void save(const std::string& filename) const;
 private:
@@ -52,6 +53,11 @@ private:
     int m_height;
     std::vector<Pixel> m_buffer;
 };
+
+inline Pixel::operator float() const
+{
+	return std::sqrt(r * r + g * g + b * b);
+}
 
 inline void Pixel::toCharArray(uint8_t* pixelData) const
 {
