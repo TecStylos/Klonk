@@ -32,8 +32,8 @@ public:
 	const std::string& getString() const { return m_string; }
 	bool getBoolean() const { return m_boolean; }
 	int64_t getInteger() const { return m_integer; }
-	const std::vector<Response> getList() const { return m_list; }
-	const std::map<std::string, Response> getDict() const { return m_dict; }
+	const std::vector<Response>& getList() const { return m_list; }
+	const std::map<std::string, Response>& getDict() const { return m_dict; }
 	std::string toString() const;
 public:
 	uint64_t size() const { return m_list.size(); }

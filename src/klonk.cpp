@@ -1,7 +1,9 @@
 #include <iostream>
+#include <mutex>
+#include <queue>
+#include <thread>
 
 #include "spotify.h"
-
 #include "UserInterface.h"
 
 #define WIDTH 320
@@ -53,6 +55,12 @@ Pixel getAvgColor(const Image& img)
 	return avgColor / Pixel(float(img.width() * img.height()));
 }
 
+struct TouchEvent
+{
+	enum class Type { None, Up, Down, Move } type = Type::None;
+	TouchPos posOld, posNew;
+};
+
 struct UIInfo
 {
 	std::string coverURL = "";
@@ -60,9 +68,88 @@ struct UIInfo
 	int trackLen = 1;
 	Pixel accentColor = { 0.5f };
 	Spotify spotify;
+	std::queue<TouchEvent> touchEvents;
+	std::mutex mtxInfo;
+	std::mutex mtxSpotify;
+	bool shouldExit = false;
 };
 
-#define makeUIInfo() UIInfo& uiInfo = *(UIInfo*)pData
+#define MAKE_UIINFO() UIInfo& uiInfo = *(UIInfo*)pData
+#define EXEC_UIINFO_LOCKED(code) \
+{ \
+	std::lock_guard lock(uiInfo.mtxInfo); \
+	code; \
+}
+#define EXEC_SPOTIFY_LOCKED(code) \
+{ \
+	std::lock_guard lock(uiInfo.mtxSpotify); \
+	code; \
+}
+
+void spotifyThreadFunc(UIInfo* pUIInfo)
+{
+	auto& uiInfo = *pUIInfo;
+
+	while (!uiInfo.shouldExit)
+	{
+		sleep(1);
+	}
+}
+
+void touchThreadFunc(UIInfo* pUIInfo)
+{
+	auto& uiInfo = *pUIInfo;
+
+	Touch<WIDTH, HEIGHT, 200, 3800> touch;
+
+	TouchPos oldPos;
+	bool oldIsDown = false;
+
+	while (!uiInfo.shouldExit)
+	{
+		touch.fetchToSync();
+
+		TouchEvent event;
+
+		if (oldIsDown)
+		{
+			if (touch.down())
+			{
+				event.type = TouchEvent::Type::None;
+				//event.type = TouchEvent::Type::Move;
+				//std::cout << "Gen Move\n";
+			}
+			else
+			{
+				event.type = TouchEvent::Type::Up;
+				std::cout << "Gen Up\n";
+			}
+		}
+		else
+		{
+			if (touch.down())
+			{
+				event.type = TouchEvent::Type::Down;
+				std::cout << "Gen Down\n";
+			}
+			else
+			{
+				event.type = TouchEvent::Type::None;
+			}
+		}
+
+		if (event.type != TouchEvent::Type::None)
+		{
+			event.posOld = oldPos;
+			event.posNew = touch.pos();
+
+			EXEC_UIINFO_LOCKED(uiInfo.touchEvents.push(event));
+		}
+
+		oldPos = touch.pos();
+		oldIsDown = touch.down();
+	}
+}
 
 int modePlayback(int argc, char** argv)
 {
@@ -80,13 +167,15 @@ int modePlayback(int argc, char** argv)
 	uiTrackViewAccent->setCbOnRender(
 		[](const UIElement* pElem, Framebuffer& fb, void* pData)
 		{
-			makeUIInfo();
-			fb.drawRect(
-				pElem->posX(),
-				pElem->posY(),
-				pElem->width(),
-				pElem->height(),
-				uiInfo.accentColor
+			MAKE_UIINFO();
+			EXEC_UIINFO_LOCKED(
+				fb.drawRect(
+					pElem->posX(),
+					pElem->posY(),
+					pElem->width(),
+					pElem->height(),
+					uiInfo.accentColor
+				);
 			);
 		}
 	);
@@ -94,11 +183,11 @@ int modePlayback(int argc, char** argv)
 	uiCover->setCbOnDown(
 		[](UIElement* pElem, int x, int y, void* pData)
 		{
-			makeUIInfo();
+			MAKE_UIINFO();
 			if (!pElem->isHit(x, y))
 				return false;
 
-			uiInfo.spotify.exec("spotify.pause_playback()");
+			EXEC_SPOTIFY_LOCKED(uiInfo.spotify.exec("spotify.pause_playback()"));
 
 			return true;
 		}
@@ -108,46 +197,79 @@ int modePlayback(int argc, char** argv)
 	uiSeekbar->setCbOnRender(
 		[](const UIElement* pElem, Framebuffer& fb, void* pData)
 		{
-			makeUIInfo();
+			MAKE_UIINFO();
 			int x = pElem->posX();
 			int y = pElem->posY();
-			int wFilled = pElem->width() * uiInfo.trackPos / uiInfo.trackLen;
+			int wFilled;
+			EXEC_UIINFO_LOCKED(wFilled = pElem->width() * uiInfo.trackPos / uiInfo.trackLen);
 			int wEmpty = pElem->width() - wFilled;
 			fb.drawRect(x, y, wFilled, pElem->height(), { 0.1f, 0.7f, 0.2f });
 			fb.drawRect(x + wFilled, y, wEmpty, pElem->height(), { 0.2f });
 		}
 	);
 
-	while (true)
+	std::thread spotifyThread(spotifyThreadFunc, &uiInfo);
+	std::thread touchThread(touchThreadFunc, &uiInfo);
+
+	while (!uiInfo.shouldExit)
 	{
-		response = uiInfo.spotify.exec("spotify.currently_playing()");
+		EXEC_SPOTIFY_LOCKED(response = uiInfo.spotify.exec("spotify.currently_playing()"));
 
 		auto newImgURL = getImageURL(response, "item.album.images");
-		if (!newImgURL.empty() && uiInfo.coverURL != newImgURL)
-		{
-			uiInfo.coverURL = newImgURL;
-			if (uiInfo.spotify.exec("urllib.request.urlretrieve('" + uiInfo.coverURL + "', 'data/cover.jpg')").toString().find("data/cover.jpg") != std::string::npos)
+
+		EXEC_UIINFO_LOCKED(
+			if (!newImgURL.empty() && uiInfo.coverURL != newImgURL)
 			{
-				uiCover->getImage().downscaleFrom(Image("data/cover.jpg"));
-				uiInfo.accentColor = getAvgColor(uiCover->getImage());
+				uiInfo.coverURL = newImgURL;
+				if (uiInfo.spotify.exec("urllib.request.urlretrieve('" + uiInfo.coverURL + "', 'data/cover.jpg')").toString().find("data/cover.jpg") != std::string::npos)
+				{
+					uiCover->getImage().downscaleFrom(Image("data/cover.jpg"));
+					uiInfo.accentColor = getAvgColor(uiCover->getImage());
+				}
+				else
+					std::cout << "[ ERR ]: Could not download " << uiInfo.coverURL << std::endl;
+			}
+
+			if (response.has("progress_ms") && response.has("item.duration_ms"))
+			{
+				uiInfo.trackPos = response["progress_ms"].getInteger();
+				uiInfo.trackLen = response["item.duration_ms"].getInteger();
 			}
 			else
-				std::cout << "[ ERR ]: Could not download " << uiInfo.coverURL << std::endl;
-		}
+			{
+				std::cout << "[ ERR ]: Invalid response:\n    " << response.toString() << std::endl;
+			}
+		);
 
-		if (response.has("progress_ms") && response.has("item.duration_ms"))
+		bool touchEventAvail;
+		EXEC_UIINFO_LOCKED(touchEventAvail = !uiInfo.touchEvents.empty());
+		while (touchEventAvail)
 		{
-			uiInfo.trackPos = response["progress_ms"].getInteger();
-			uiInfo.trackLen = response["item.duration_ms"].getInteger();
-		}
-		else
-		{
-			std::cout << "[ ERR ]: Invalid response:\n    " << response.toString() << std::endl;
+			TouchEvent event;
+			EXEC_UIINFO_LOCKED(
+				event = uiInfo.touchEvents.front();
+				uiInfo.touchEvents.pop();
+			);
+
+			switch (event.type)
+			{
+			case TouchEvent::Type::Up:
+				uiRoot.onUp(event.posNew.x, event.posNew.y, &uiInfo);
+				break;
+			case TouchEvent::Type::Down:
+				uiRoot.onDown(event.posNew.x, event.posNew.y, &uiInfo);
+				break;
+			case TouchEvent::Type::Move:
+				uiRoot.onMove(event.posOld.x, event.posOld.y, event.posNew.x, event.posNew.y, &uiInfo);
+				break;
+			}
+
+			EXEC_UIINFO_LOCKED(touchEventAvail = !uiInfo.touchEvents.empty());
 		}
 
 		uiRoot.onUpdate(&uiInfo);
 
-		fb.clear(uiInfo.accentColor * Pixel(0.2f));
+		EXEC_UIINFO_LOCKED(fb.clear(uiInfo.accentColor * Pixel(0.2f)));
 		uiRoot.onRender(fb, &uiInfo);
 		fb.flush();
 

@@ -20,7 +20,7 @@ bool UISpace::onDown(int x, int y, void* pData)
 	for (auto& elem : m_elements)
 		if (elem->onDown(x, y, pData))
 			return true;
-	return false;
+	return UIElement::onDown(x, y, pData);
 }
 
 bool UISpace::onUp(int x, int y, void* pData)
@@ -28,7 +28,7 @@ bool UISpace::onUp(int x, int y, void* pData)
 	for (auto& elem : m_elements)
 		if (elem->onUp(x, y, pData))
 			return true;
-	return false;
+	return UIElement::onUp(x, y, pData);
 }
 
 bool UISpace::onMove(int xOld, int yOld, int xNew, int yNew, void* pData)
@@ -36,19 +36,21 @@ bool UISpace::onMove(int xOld, int yOld, int xNew, int yNew, void* pData)
 	for (auto& elem : m_elements)
 		if (elem->onMove(xOld, yOld, xNew, yNew, pData))
 			return true;
-	return false;
+	return UIElement::onMove(xOld, yOld, xNew, yNew, pData);
 }
 
 void UISpace::onUpdate(void* pData)
 {
 	for (auto& elem : m_elements)
 		elem->onUpdate(pData);
+	UIElement::onUpdate(pData);
 }
 
 void UISpace::onRender(Framebuffer& fb, void* pData) const
 {
 	for (auto& elem : m_elements)
 		elem->onRender(fb, pData);
+	UIElement::onRender(fb, pData);
 }
 
 void UISpace::remElement(UIElement* pElem)
@@ -67,6 +69,7 @@ UIImage::UIImage(int x, int y, Image& img)
 void UIImage::onRender(Framebuffer& fb, void* pData) const
 {
 	fb.drawImage(m_x, m_y, m_img);
+	UIElement::onRender(fb, pData);
 }
 
 Image& UIImage::getImage()
