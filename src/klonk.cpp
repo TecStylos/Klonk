@@ -38,10 +38,11 @@ int modeQuery(int argc, char** argv)
 	return 0;
 }
 
-std::string getImageURL(const Response& response, const std::string& imagesPath)
+const std::string& getImageURL(const Response& response, const std::string& imagesPath)
 {
+	static std::string emptyString;
 	if (!response.has(imagesPath + ".0.url"))
-		return "";
+		return emptyString;
 
 	return response[imagesPath + ".0.url"].getString();
 }
@@ -63,9 +64,10 @@ struct TouchEvent
 
 struct UIInfo
 {
-	std::string coverURL = "";
+	bool coverIsOutdated = false;
 	int trackPos = 0;
 	int trackLen = 1;
+	bool isPlaying = false;
 	Pixel accentColor = { 0.5f };
 	Spotify spotify;
 	std::queue<TouchEvent> touchEvents;
@@ -90,9 +92,43 @@ void spotifyThreadFunc(UIInfo* pUIInfo)
 {
 	auto& uiInfo = *pUIInfo;
 
+	std::string trackID = "";
+
 	while (!uiInfo.shouldExit)
 	{
-		sleep(1);
+		Response response;
+		EXEC_SPOTIFY_LOCKED(response = uiInfo.spotify.exec("spotify.currently_playing()"));
+
+		if (response.has("item.id"))
+		{
+			auto& newTrackID = response["item.id"].getString();
+			if (trackID != newTrackID)
+			{
+				trackID = newTrackID;
+				auto& newImgURL = getImageURL(response, "item.album.images");
+				if (!newImgURL.empty())
+				{
+					bool imgDownloadSuccess;
+					EXEC_SPOTIFY_LOCKED(imgDownloadSuccess = uiInfo.spotify.exec("urllib.request.urlretrieve('" + newImgURL + "', 'data/cover.jpg')").toString().find("data/cover.jpg") != std::string::npos);
+					EXEC_UIINFO_LOCKED(uiInfo.coverIsOutdated = imgDownloadSuccess);
+				}
+			}
+		}
+
+		if (response.has("progress_ms") && response.has("item.duration_ms"))
+		{
+			EXEC_UIINFO_LOCKED(
+				uiInfo.trackPos = response["progress_ms"].getInteger();
+				uiInfo.trackLen = response["item.duration_ms"].getInteger();
+			);
+		}
+
+		if (response.has("is_playing"))
+		{
+			EXEC_UIINFO_LOCKED(uiInfo.isPlaying = response["is_playing"].getBoolean());
+		}
+
+		sleep(2);
 	}
 }
 
@@ -107,31 +143,27 @@ void touchThreadFunc(UIInfo* pUIInfo)
 
 	while (!uiInfo.shouldExit)
 	{
-		touch.fetchToSync();
+		if (!touch.fetchToSync())
+		{
+			usleep(500 * 1000);
+			continue;
+		}
 
 		TouchEvent event;
 
 		if (oldIsDown)
 		{
 			if (touch.down())
-			{
 				event.type = TouchEvent::Type::Move;
-			}
 			else
-			{
 				event.type = TouchEvent::Type::Up;
-			}
 		}
 		else
 		{
 			if (touch.down())
-			{
 				event.type = TouchEvent::Type::Down;
-			}
 			else
-			{
 				event.type = TouchEvent::Type::None;
-			}
 		}
 
 		if (event.type != TouchEvent::Type::None)
@@ -151,8 +183,6 @@ int modePlayback(int argc, char** argv)
 {
 	Framebuffer fb(WIDTH, HEIGHT);
 	fb.flush();
-
-	Response response;
 
 	UIInfo uiInfo;
 
@@ -175,21 +205,46 @@ int modePlayback(int argc, char** argv)
 			);
 		}
 	);
-	auto uiCover = uiTrackView->addElement<UIImage>(11, 11, 128, 128);
-	uiCover->setCbOnDown(
+	auto uiTrackViewCover = uiTrackView->addElement<UIImage>(11, 11, 128, 128);
+	uiTrackViewCover->setCbOnDown(
 		[](UIElement* pElem, int x, int y, void* pData)
 		{
 			MAKE_UIINFO();
 			if (!pElem->isHit(x, y))
 				return false;
 
-			EXEC_SPOTIFY_LOCKED(uiInfo.spotify.exec("spotify.pause_playback()"));
+			bool isPlaying;
+			EXEC_UIINFO_LOCKED(isPlaying = uiInfo.isPlaying);
+
+			EXEC_SPOTIFY_LOCKED(uiInfo.spotify.exec(isPlaying ? "spotify.pause_playback()" : "spotify.start_playback()"));
+			EXEC_UIINFO_LOCKED(uiInfo.isPlaying = !isPlaying);
 
 			return true;
 		}
 	);
+	uiTrackViewCover->setCbOnUpdate(
+		[](UIElement* pElem, void* pData)
+		{
+			MAKE_UIINFO();
 
-	auto uiSeekbar = uiRoot.addElement<UIElement>(20, 218, 280, 7);
+			bool isOutdated;
+			EXEC_UIINFO_LOCKED(isOutdated = uiInfo.coverIsOutdated);
+			if (!isOutdated)
+				return;
+
+			auto& img = ((UIImage*)pElem)->getImage();
+
+			img.downscaleFrom(Image("data/cover.jpg"));
+			auto avgColor = getAvgColor(img);
+
+			EXEC_UIINFO_LOCKED(
+				uiInfo.accentColor = avgColor;
+				uiInfo.coverIsOutdated = false;
+			);
+		}
+	);
+
+	auto uiSeekbar = uiRoot.addElement<UIElement>(20, 215, 280, 12);
 	uiSeekbar->setCbOnRender(
 		[](const UIElement* pElem, Framebuffer& fb, void* pData)
 		{
@@ -203,15 +258,64 @@ int modePlayback(int argc, char** argv)
 			fb.drawRect(x + wFilled, y, wEmpty, pElem->height(), { 0.2f });
 		}
 	);
+	uiSeekbar->setCbOnDown(
+		[](UIElement* pElem, int x, int y, void* pData)
+		{
+			MAKE_UIINFO();
+			if (!pElem->isHit(x, y))
+				return false;
+
+			EXEC_UIINFO_LOCKED(x = uiInfo.trackPos = (x - pElem->posX()) * uiInfo.trackLen / pElem->width(););
+
+			EXEC_SPOTIFY_LOCKED(uiInfo.spotify.exec("spotify.seek_track(" + std::to_string(x) + ")"));
+
+			return true;
+		}
+	);
+
+	auto uiBtnPrevTrack = uiRoot.addElement<UIImage>(11, 88, 64, 64);
+	uiBtnPrevTrack->getImage().downscaleFrom(Image("resource/btn-prev-track.jpg"));
+	uiBtnPrevTrack->setCbOnDown(
+		[](UIElement* pElem, int x, int y, void* pData)
+		{
+			MAKE_UIINFO();
+			if (!pElem->isHit(x, y))
+				return false;
+
+			bool seekToBeginning;
+			EXEC_UIINFO_LOCKED(
+				seekToBeginning = uiInfo.trackPos > 5000;
+				uiInfo.trackPos = 0;
+			);
+			EXEC_SPOTIFY_LOCKED(uiInfo.spotify.exec(seekToBeginning ? "spotify.seek_track(0)" : "spotify.previous_track()"));
+
+			return true;
+		}
+	);
+
+	auto uiBtnNextTrack = uiRoot.addElement<UIImage>(245, 88, 64, 64);
+	uiBtnNextTrack->getImage().downscaleFrom(Image("resource/btn-next-track.jpg"));
+	uiBtnNextTrack->setCbOnDown(
+		[](UIElement* pElem, int x, int y, void* pData)
+		{
+			MAKE_UIINFO();
+			if (!pElem->isHit(x, y))
+				return false;
+
+			EXEC_SPOTIFY_LOCKED(uiInfo.spotify.exec("spotify.next_track()"));
+
+			return true;
+		}
+	);
 
 	auto uiExitBtn = uiRoot.addElement<UIElement>(0, 0, 10, 10);
 	uiExitBtn->setCbOnDown(
 		[](UIElement* pElem, int x, int y, void* pData)
 		{
+			MAKE_UIINFO();
 			if (!pElem->isHit(x, y))
 				return false;
 
-			MAKE_UIINFO();
 			EXEC_UIINFO_LOCKED(uiInfo.shouldExit = true);
 
 			return true;
@@ -229,34 +333,6 @@ int modePlayback(int argc, char** argv)
 
 	while (!uiInfo.shouldExit)
 	{
-		EXEC_SPOTIFY_LOCKED(response = uiInfo.spotify.exec("spotify.currently_playing()"));
-
-		auto newImgURL = getImageURL(response, "item.album.images");
-
-		EXEC_UIINFO_LOCKED(
-			if (!newImgURL.empty() && uiInfo.coverURL != newImgURL)
-			{
-				uiInfo.coverURL = newImgURL;
-				if (uiInfo.spotify.exec("urllib.request.urlretrieve('" + uiInfo.coverURL + "', 'data/cover.jpg')").toString().find("data/cover.jpg") != std::string::npos)
-				{
-					uiCover->getImage().downscaleFrom(Image("data/cover.jpg"));
-					uiInfo.accentColor = getAvgColor(uiCover->getImage());
-				}
-				else
-					std::cout << "[ ERR ]: Could not download " << uiInfo.coverURL << std::endl;
-			}
-
-			if (response.has("progress_ms") && response.has("item.duration_ms"))
-			{
-				uiInfo.trackPos = response["progress_ms"].getInteger();
-				uiInfo.trackLen = response["item.duration_ms"].getInteger();
-			}
-			else
-			{
-				std::cout << "[ ERR ]: Invalid response:\n    " << response.toString() << std::endl;
-			}
-		);
-
 		bool touchEventAvail;
 		EXEC_UIINFO_LOCKED(touchEventAvail = !uiInfo.touchEvents.empty());
 		while (touchEventAvail)
@@ -285,14 +361,14 @@ int modePlayback(int argc, char** argv)
 
 		uiRoot.onUpdate(&uiInfo);
 
-		EXEC_UIINFO_LOCKED(fb.clear(uiInfo.accentColor * Pixel(0.2f)));
+		EXEC_UIINFO_LOCKED(fb.clear(uiInfo.accentColor * Pixel(0.7f)));
 		uiRoot.onRender(fb, &uiInfo);
 		fb.flush();
 
-		sleep(2);
+		usleep(500 * 1000);
 	}
 
-	std::cout << "Exiting...";
+	std::cout << "Exiting...\n";
 
 	spotifyThread.join();
 	touchThread.join();

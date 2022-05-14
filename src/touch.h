@@ -20,8 +20,9 @@ public:
 	TouchPos pos() const;
 	bool down() const;
 	bool up() const;
-	bool fetchSingle();
-	void fetchToSync();
+	bool eventAvail();
+	int fetchSingle();
+	bool fetchToSync();
 private:
 	int convVal(int val, int newMax) const;
 private:
@@ -57,11 +58,16 @@ bool Touch<W,H,MIN,MAX>::up() const
 	return !down();
 }
 
+// Return values:
+// < 0 -> No event read
+// = 0 -> Normal event read
+// > 0 -> Sync event read
 template <int W, int H, int MIN, int MAX>
-bool Touch<W,H,MIN,MAX>::fetchSingle()
+int Touch<W,H,MIN,MAX>::fetchSingle()
 {
 	input_event ie;
 	m_file.read((char*)&ie, sizeof(ie));
+
 	bool wasSync = false;
 	switch (ie.type)
 	{
@@ -85,14 +91,18 @@ bool Touch<W,H,MIN,MAX>::fetchSingle()
 			m_infoRolling.pressure = ie.value;
 			break;
 		}
+		break;
 	}
-	return wasSync;
+
+	return wasSync ? 1 : 0;
 }
 
 template <int W, int H, int MIN, int MAX>
-void Touch<W,H,MIN,MAX>::fetchToSync()
+bool Touch<W,H,MIN,MAX>::fetchToSync()
 {
-	while (!fetchSingle());
+	int result;
+	while (!(result = fetchSingle())); // Fetch a new event as long as a normal event is available
+	return result > 0;
 }
 
 
