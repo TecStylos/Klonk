@@ -335,26 +335,6 @@ int modePlayback(int argc, char** argv)
 		}
 	);
 
-	auto uiExitBtn = uiRoot.addElement<UIElement>(0, 0, 10, 10);
-	uiExitBtn->setCbOnDown(
-		[](UIElement* pElem, int x, int y, void* pData)
-		{
-			MAKE_UIINFO();
-			if (!pElem->isHit(x, y))
-				return false;
-
-			EXEC_UIINFO_LOCKED(uiInfo.shouldExit = true);
-
-			return true;
-		}
-	);
-	uiExitBtn->setCbOnRender(
-		[](const UIElement* pElem, Framebuffer& fb, void* pData)
-		{
-			fb.drawRect(pElem->posX(), pElem->posY(), pElem->width(), pElem->height(), { 1.0f, 0.0f, 0.0f });
-		}
-	);
-
 	std::thread spotifyThread(spotifyThreadFunc, &uiInfo);
 	std::thread touchThread(touchThreadFunc, &uiInfo);
 
