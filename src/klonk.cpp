@@ -2,6 +2,7 @@
 #include <mutex>
 #include <queue>
 #include <thread>
+#include <condition_variable>
 
 #include "spotify.h"
 #include "UserInterface.h"
@@ -74,6 +75,8 @@ struct UIInfo
 	std::mutex mtxInfo;
 	std::mutex mtxSpotify;
 	bool shouldExit = false;
+	bool spotifyShouldUpdateNow;
+	std::condition_variable condVarSpotify;
 };
 
 #define MAKE_UIINFO() UIInfo& uiInfo = *(UIInfo*)pData
@@ -86,6 +89,12 @@ struct UIInfo
 { \
 	std::lock_guard lock(uiInfo.mtxSpotify); \
 	code; \
+}
+
+void notifySpotifyUpdate(UIInfo& uiInfo)
+{
+	EXEC_UIINFO_LOCKED(uiInfo.spotifyShouldUpdateNow = true);
+	uiInfo.condVarSpotify.notify_one();
 }
 
 void spotifyThreadFunc(UIInfo* pUIInfo)
@@ -128,7 +137,20 @@ void spotifyThreadFunc(UIInfo* pUIInfo)
 			EXEC_UIINFO_LOCKED(uiInfo.isPlaying = response["is_playing"].getBoolean());
 		}
 
-		sleep(2);
+		{
+			std::unique_lock lock(uiInfo.mtxInfo);
+			uiInfo.condVarSpotify.wait_for(
+				lock,
+				std::chrono::seconds(2),
+				[&]()
+				{
+					if (!uiInfo.spotifyShouldUpdateNow)
+						return false;
+					uiInfo.spotifyShouldUpdateNow = false;
+					return true;
+				}
+			);
+		}
 	}
 }
 
@@ -145,7 +167,7 @@ void touchThreadFunc(UIInfo* pUIInfo)
 	{
 		if (!touch.fetchToSync())
 		{
-			usleep(500 * 1000);
+			usleep(100 * 1000);
 			continue;
 		}
 
@@ -219,6 +241,8 @@ int modePlayback(int argc, char** argv)
 			EXEC_SPOTIFY_LOCKED(uiInfo.spotify.exec(isPlaying ? "spotify.pause_playback()" : "spotify.start_playback()"));
 			EXEC_UIINFO_LOCKED(uiInfo.isPlaying = !isPlaying);
 
+			notifySpotifyUpdate(uiInfo);
+
 			return true;
 		}
 	);
@@ -265,9 +289,11 @@ int modePlayback(int argc, char** argv)
 			if (!pElem->isHit(x, y))
 				return false;
 
-			EXEC_UIINFO_LOCKED(x = uiInfo.trackPos = (x - pElem->posX()) * uiInfo.trackLen / pElem->width(););
+			EXEC_UIINFO_LOCKED(x = (x - pElem->posX()) * uiInfo.trackLen / pElem->width(););
 
 			EXEC_SPOTIFY_LOCKED(uiInfo.spotify.exec("spotify.seek_track(" + std::to_string(x) + ")"));
+
+			notifySpotifyUpdate(uiInfo);
 
 			return true;
 		}
@@ -283,11 +309,10 @@ int modePlayback(int argc, char** argv)
 				return false;
 
 			bool seekToBeginning;
-			EXEC_UIINFO_LOCKED(
-				seekToBeginning = uiInfo.trackPos > 5000;
-				uiInfo.trackPos = 0;
-			);
+			EXEC_UIINFO_LOCKED(seekToBeginning = uiInfo.trackPos > 5000;);
 			EXEC_SPOTIFY_LOCKED(uiInfo.spotify.exec(seekToBeginning ? "spotify.seek_track(0)" : "spotify.previous_track()"));
+
+			notifySpotifyUpdate(uiInfo);
 
 			return true;
 		}
@@ -303,6 +328,8 @@ int modePlayback(int argc, char** argv)
 				return false;
 
 			EXEC_SPOTIFY_LOCKED(uiInfo.spotify.exec("spotify.next_track()"));
+
+			notifySpotifyUpdate(uiInfo);
 
 			return true;
 		}
@@ -361,11 +388,11 @@ int modePlayback(int argc, char** argv)
 
 		uiRoot.onUpdate(&uiInfo);
 
-		EXEC_UIINFO_LOCKED(fb.clear(uiInfo.accentColor * Pixel(0.7f)));
+		EXEC_UIINFO_LOCKED(fb.clear(uiInfo.accentColor * Pixel(0.0f)));
 		uiRoot.onRender(fb, &uiInfo);
 		fb.flush();
 
-		usleep(500 * 1000);
+		usleep(250 * 1000);
 	}
 
 	std::cout << "Exiting...\n";

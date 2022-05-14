@@ -90,8 +90,11 @@ std::string Response::toString() const
 		str += std::to_string(m_integer);
 		break;
 	case ResponseType::String:
-		str += "'" + m_string + "'";
+	{
+		auto delim = (m_string.find("'") != std::string::npos) ? "\"" : "'";
+		str += delim + m_string + delim;
 		break;
+	}
 	case ResponseType::List:
 	{
 		str += "[ ";
@@ -180,6 +183,8 @@ const char* Response::readToken(const char* str, Token* pToken)
 
 	Token tok;
 
+	char stringDelim = '\0';
+
 	enum class State
 	{
 		BeginToken,
@@ -210,8 +215,10 @@ const char* Response::readToken(const char* str, Token* pToken)
 				state = State::TokBoolean;
 				break;
 			case '\'':
+			case '"':
 				tok.type = Token::Type::String;
 				state = State::TokString;
+				stringDelim = c;
 				break;
 			case '[':
 				tok.type = Token::Type::ListBegin;
@@ -280,7 +287,7 @@ const char* Response::readToken(const char* str, Token* pToken)
 			}
 			break;
 		case State::TokString:
-			if (c == '\'')
+			if (c == stringDelim)
 				state = State::EndToken;
 			else
 				tok.value.push_back(c);
