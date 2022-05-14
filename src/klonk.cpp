@@ -115,14 +115,11 @@ void touchThreadFunc(UIInfo* pUIInfo)
 		{
 			if (touch.down())
 			{
-				event.type = TouchEvent::Type::None;
-				//event.type = TouchEvent::Type::Move;
-				//std::cout << "Gen Move\n";
+				event.type = TouchEvent::Type::Move;
 			}
 			else
 			{
 				event.type = TouchEvent::Type::Up;
-				std::cout << "Gen Up\n";
 			}
 		}
 		else
@@ -130,7 +127,6 @@ void touchThreadFunc(UIInfo* pUIInfo)
 			if (touch.down())
 			{
 				event.type = TouchEvent::Type::Down;
-				std::cout << "Gen Down\n";
 			}
 			else
 			{
@@ -208,6 +204,26 @@ int modePlayback(int argc, char** argv)
 		}
 	);
 
+	auto uiExitBtn = uiRoot.addElement<UIElement>(0, 0, 10, 10);
+	uiExitBtn->setCbOnDown(
+		[](UIElement* pElem, int x, int y, void* pData)
+		{
+			if (!pElem->isHit(x, y))
+				return false;
+
+			MAKE_UIINFO();
+			EXEC_UIINFO_LOCKED(uiInfo.shouldExit = true);
+
+			return true;
+		}
+	);
+	uiExitBtn->setCbOnRender(
+		[](const UIElement* pElem, Framebuffer& fb, void* pData)
+		{
+			fb.drawRect(pElem->posX(), pElem->posY(), pElem->width(), pElem->height(), { 1.0f, 0.0f, 0.0f });
+		}
+	);
+
 	std::thread spotifyThread(spotifyThreadFunc, &uiInfo);
 	std::thread touchThread(touchThreadFunc, &uiInfo);
 
@@ -275,6 +291,14 @@ int modePlayback(int argc, char** argv)
 
 		sleep(2);
 	}
+
+	std::cout << "Exiting...";
+
+	spotifyThread.join();
+	touchThread.join();
+
+	fb.clear({});
+	fb.flush();
 
 	return 0;
 }
