@@ -272,25 +272,36 @@ int modePlayback(int argc, char** argv)
 		[](const UIElement* pElem, Framebuffer& fb, void* pData)
 		{
 			MAKE_UIINFO();
-			EXEC_UIINFO_LOCKED(
-				int h = pElem->height();
-				int hFilled = h * uiInfo.volume / 100;
-				int hDarkened = h - hFilled;
 
-				fb.drawRect(
-					pElem->posX(),
-					pElem->posY(),
-					pElem->width(),
-					hDarkened,
-					uiInfo.accentColor * Pixel(uiInfo.volume / 100.0f)
-				);
-				fb.drawRect(
-					pElem->posX(),
-					pElem->posY() + hDarkened,
-					pElem->width(),
-					hFilled,
-					uiInfo.accentColor
-				);
+			static int smoothVolume = 0;
+
+			Pixel color;
+			int infoVolume;
+			EXEC_UIINFO_LOCKED(
+				color = uiInfo.accentColor;
+				infoVolume = uiInfo.volume;
+			);
+
+			int diff = infoVolume - smoothVolume;
+			smoothVolume += (std::abs(diff) < 5) ? diff : diff / 5;
+
+			int h = pElem->height();
+			int hFilled = h * smoothVolume / 100;
+			int hDarkened = h - hFilled;
+
+			fb.drawRect(
+				pElem->posX(),
+				pElem->posY(),
+				pElem->width(),
+				hDarkened,
+				color * Pixel(smoothVolume / 100.0f)
+			);
+			fb.drawRect(
+				pElem->posX(),
+				pElem->posY() + hDarkened,
+				pElem->width(),
+				hFilled,
+				color
 			);
 		}
 	);
