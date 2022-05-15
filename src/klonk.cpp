@@ -71,6 +71,7 @@ struct UIInfo
 	int trackLen = 1;
 	std::string trackName = "<UNKNOWN>";
 	bool isPlaying = false;
+	int volume = 100;
 	Pixel accentColor = { 0.5f };
 	Spotify spotify;
 	std::queue<TouchEvent> touchEvents;
@@ -107,6 +108,14 @@ uint64_t timeInMs()
 	return tv.tv_sec * 1000 + tv.tv_usec / 1000;
 }
 
+std::string msTimeToString(uint64_t ms)
+{
+	auto seconds = ms / 1000;
+	auto minutes = seconds / 60;
+	seconds -=  minutes * 60;
+	return std::to_string(minutes) + ":" + (seconds < 10 ? "0" : "") + std::to_string(seconds);
+}
+
 void spotifyThreadFunc(UIInfo* pUIInfo)
 {
 	auto& uiInfo = *pUIInfo;
@@ -116,9 +125,15 @@ void spotifyThreadFunc(UIInfo* pUIInfo)
 	while (!uiInfo.shouldExit)
 	{
 		Response response;
-		EXEC_SPOTIFY_LOCKED(response = uiInfo.spotify.exec("spotify.currently_playing()"));
+		EXEC_SPOTIFY_LOCKED(response = uiInfo.spotify.exec("spotify.current_playback()"));
 
-		if (response.has("item.id"))
+		if (
+			response.has("item.id") &&
+			response.has("progress_ms") &&
+			response.has("item.duration_ms") &&
+			response.has("item.name") &&
+			response.has("device.volume_percent") &&
+			response.has("is_playing"))
 		{
 			auto& newTrackID = response["item.id"].getString();
 			if (trackID != newTrackID)
@@ -132,20 +147,14 @@ void spotifyThreadFunc(UIInfo* pUIInfo)
 					EXEC_UIINFO_LOCKED(uiInfo.coverIsOutdated = imgDownloadSuccess);
 				}
 			}
-		}
 
-		if (response.has("progress_ms") && response.has("item.duration_ms") && response.has("item.name"))
-		{
 			EXEC_UIINFO_LOCKED(
 				uiInfo.trackPos = response["progress_ms"].getInteger();
 				uiInfo.trackLen = response["item.duration_ms"].getInteger();
 				uiInfo.trackName = response["item.name"].getString();
+				uiInfo.isPlaying = response["is_playing"].getBoolean();
+				uiInfo.volume = response["device.volume_percent"].getInteger();
 			);
-		}
-
-		if (response.has("is_playing"))
-		{
-			EXEC_UIINFO_LOCKED(uiInfo.isPlaying = response["is_playing"].getBoolean());
 		}
 
 		{
@@ -227,43 +236,65 @@ int modePlayback(int argc, char** argv)
 		{
 			MAKE_UIINFO();
 			static std::string oldName;
+			static int scrollDirection;
 
 			std::string newName;
 			EXEC_UIINFO_LOCKED(newName = uiInfo.trackName);
-			if (oldName == newName)
-				return;
+			if (oldName != newName)
+			{
+				auto& img = ((UIImage*)pElem)->getImage();
+				img = genTextImage(newName, 18);
+				oldName = newName;
 
-			auto& img = ((UIImage*)pElem)->getImage();
+				scrollDirection = -1;
 
-			img = genTextImage(newName, 14);
+				pElem->posX() = (img.width() > 320) ? 16 : (160 - img.width() / 2);
+				pElem->posY() = 22 - img.height() / 2;
+				pElem->width() = img.width();
+				pElem->height() = img.height();
 
-			pElem->posX() = 160 - img.width() / 2;
-			pElem->posY() = 22 - img.height() / 2;
-			pElem->width() = img.width();
-			pElem->height() = img.height();
+			}
 
-			oldName = newName;
+			if (pElem->width() > 320)
+			{
+				if (pElem->posX() >= 16)
+					scrollDirection = -1;
+				else if (pElem->posX() + pElem->width() < 320 - 16)
+					scrollDirection = 1;
+				pElem->posX() += scrollDirection * 3;
+			}
 		}
 	);
 
-	auto uiTrackView = uiRoot.addElement<UISpace>(85, 45, 150, 150);
-	auto uiTrackViewAccent = uiTrackView->addElement<UIElement>(0, 0, 150, 150);
+	auto uiTrackView = uiRoot.addElement<UISpace>(84, 44, 152, 152);
+	auto uiTrackViewAccent = uiTrackView->addElement<UIElement>(0, 0, 152, 152);
 	uiTrackViewAccent->setCbOnRender(
 		[](const UIElement* pElem, Framebuffer& fb, void* pData)
 		{
 			MAKE_UIINFO();
 			EXEC_UIINFO_LOCKED(
+				int h = pElem->height();
+				int hFilled = h * uiInfo.volume / 100;
+				int hDarkened = h - hFilled;
+
 				fb.drawRect(
 					pElem->posX(),
 					pElem->posY(),
 					pElem->width(),
-					pElem->height(),
+					hDarkened,
+					uiInfo.accentColor * Pixel(uiInfo.volume / 100.0f)
+				);
+				fb.drawRect(
+					pElem->posX(),
+					pElem->posY() + hDarkened,
+					pElem->width(),
+					hFilled,
 					uiInfo.accentColor
 				);
 			);
 		}
 	);
-	auto uiTrackViewCover = uiTrackView->addElement<UIImage>(11, 11, 128, 128);
+	auto uiTrackViewCover = uiTrackView->addElement<UIImage>(12, 12, 128, 128);
 	uiTrackViewCover->setCbOnDown(
 		[](UIElement* pElem, int x, int y, void* pData)
 		{
@@ -384,6 +415,50 @@ int modePlayback(int argc, char** argv)
 			notifySpotifyUpdate(uiInfo);
 
 			return true;
+		}
+	);
+
+	auto uiTrackTimeProg = uiRoot.addElement<UIImage>(0, 0, 1, 1);
+	uiTrackTimeProg->setCbOnUpdate(
+		[](UIElement* pElem, void* pData)
+		{
+			MAKE_UIINFO();
+			EXEC_UIINFO_LOCKED(if (!uiInfo.isPlaying) return);
+
+			auto& img = ((UIImage*)pElem)->getImage();
+			std::string timeStr;
+			EXEC_UIINFO_LOCKED(timeStr = msTimeToString(uiInfo.trackPos));
+			if (timeStr.size() > 9)
+				return;
+
+			img = genTextImage(timeStr, 14);
+
+			pElem->posX() = 42 - img.width() / 2;
+			pElem->posY() = 196 - img.height() / 2;
+			pElem->width() = img.width();
+			pElem->height() = img.height();
+		}
+	);
+
+	auto uiTrackTimeLeft = uiRoot.addElement<UIImage>(0, 0, 1, 1);
+	uiTrackTimeLeft->setCbOnUpdate(
+		[](UIElement* pElem, void* pData)
+		{
+			MAKE_UIINFO();
+			EXEC_UIINFO_LOCKED(if (!uiInfo.isPlaying) return);
+
+			auto& img = ((UIImage*)pElem)->getImage();
+			std::string timeStr;
+			EXEC_UIINFO_LOCKED(timeStr = "-" + msTimeToString(uiInfo.trackLen - uiInfo.trackPos));
+			if (timeStr.size() > 10)
+				return;
+
+			img = genTextImage(timeStr, 14);
+
+			pElem->posX() = 278 - img.width() / 2;
+			pElem->posY() = 196 - img.height() / 2;
+			pElem->width() = img.width();
+			pElem->height() = img.height();
 		}
 	);
 
