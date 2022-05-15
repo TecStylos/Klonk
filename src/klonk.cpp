@@ -6,6 +6,7 @@
 
 #include "spotify.h"
 #include "UserInterface.h"
+#include "GenTextImage.h"
 
 #define WIDTH 320
 #define HEIGHT 240
@@ -68,6 +69,7 @@ struct UIInfo
 	bool coverIsOutdated = false;
 	int trackPos = 0;
 	int trackLen = 1;
+	std::string trackName = "<UNKNOWN>";
 	bool isPlaying = false;
 	Pixel accentColor = { 0.5f };
 	Spotify spotify;
@@ -132,11 +134,12 @@ void spotifyThreadFunc(UIInfo* pUIInfo)
 			}
 		}
 
-		if (response.has("progress_ms") && response.has("item.duration_ms"))
+		if (response.has("progress_ms") && response.has("item.duration_ms") && response.has("item.name"))
 		{
 			EXEC_UIINFO_LOCKED(
 				uiInfo.trackPos = response["progress_ms"].getInteger();
 				uiInfo.trackLen = response["item.duration_ms"].getInteger();
+				uiInfo.trackName = response["item.name"].getString();
 			);
 		}
 
@@ -217,6 +220,31 @@ int modePlayback(int argc, char** argv)
 	UIInfo uiInfo;
 
 	UISpace uiRoot(0, 0, WIDTH, HEIGHT);
+
+	auto uiTrackName = uiRoot.addElement<UIImage>(0, 0, 1, 1);
+	uiTrackName->setCbOnUpdate(
+		[](UIElement* pElem, void* pData)
+		{
+			MAKE_UIINFO();
+			static std::string oldName;
+
+			std::string newName;
+			EXEC_UIINFO_LOCKED(newName = uiInfo.trackName);
+			if (oldName == newName)
+				return;
+
+			auto& img = ((UIImage*)pElem)->getImage();
+
+			img = genTextImage(newName, 14);
+
+			pElem->posX() = 160 - img.width() / 2;
+			pElem->posY() = 22 - img.height() / 2;
+			pElem->width() = img.width();
+			pElem->height() = img.height();
+
+			oldName = newName;
+		}
+	);
 
 	auto uiTrackView = uiRoot.addElement<UISpace>(85, 45, 150, 150);
 	auto uiTrackViewAccent = uiTrackView->addElement<UIElement>(0, 0, 150, 150);

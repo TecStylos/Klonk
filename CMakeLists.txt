@@ -13,6 +13,7 @@ add_executable(
 	"src/Response.cpp"
 	"src/framebuffer.cpp"
 	"src/UserInterface.cpp"
+	"src/GenTextImage.cpp"
 	"src/stb_image.cpp"
 	"src/stb_image_write.cpp"
 )

@@ -12,9 +12,13 @@ public:
 	UIElement(int x, int y, int w, int h);
 	virtual ~UIElement() = default;
 public:
+	int& posX() { return m_x; }
 	int posX() const { return m_x; }
+	int& posY() { return m_y; }
 	int posY() const { return m_y; }
+	int& width() { return m_w; }
 	int width() const { return m_w; }
+	int& height() { return m_h; }
 	int height() const { return m_h; }
 public:
 	typedef bool (*OnDownCb)(UIElement*, int, int, void*);

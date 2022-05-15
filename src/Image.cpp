@@ -58,23 +58,25 @@ Image::Image(const std::string& filename)
 
 void Image::downscaleFrom(const Image& src)
 {
-    int sampleWidth = src.width() / width();
-    int sampleHeight = src.height() / height();
-    if (!sampleWidth || !sampleHeight)
-        throw std::runtime_error("Image::downscaleFrom cannot upscale images!");
-    float sampleCount = float(sampleWidth * sampleHeight);
-    for (int y = 0; y < m_height; ++y)
+    std::vector<int> pixSampleCount(width() * height());
+
+    for (int i = 0; i < width() * height(); ++i)
+        m_buffer[i] = { 0.0f };
+
+    for (int y = 0; y < src.height(); ++y)
     {
-        for (int x = 0; x < m_width; ++x)
+        for (int x = 0; x < src.width(); ++x)
         {
-            Pixel color = { 0.0f };
-            for (int dy = 0; dy < sampleHeight; ++dy)
-                for (int dx = 0; dx < sampleWidth; ++dx)
-                    color += src.getNC(x * sampleWidth + dx, y * sampleWidth + dy);
-            color /= sampleCount;
-            getNC(x, y) = color;
+            int mx = x * width() / src.width();
+            int my = y * height() / src.height();
+            int index = my * width() + mx;
+            getNC(mx, my) += src.getNC(x, y);
+            ++pixSampleCount[index];
         }
     }
+
+    for (int i = 0; i < width() * height(); ++i)
+        m_buffer[i] /= { (float)pixSampleCount[i] };
 }
 
 void Image::save(const std::string& filename) const
