@@ -97,6 +97,14 @@ void notifySpotifyUpdate(UIInfo& uiInfo)
 	uiInfo.condVarSpotify.notify_one();
 }
 
+uint64_t timeInMs()
+{
+	timeval tv;
+	if (gettimeofday(&tv, 0))
+		throw std::runtime_error("Unable to gettimeofday");
+	return tv.tv_sec * 1000 + tv.tv_usec / 1000;
+}
+
 void spotifyThreadFunc(UIInfo* pUIInfo)
 {
 	auto& uiInfo = *pUIInfo;
@@ -298,6 +306,22 @@ int modePlayback(int argc, char** argv)
 			return true;
 		}
 	);
+	uiSeekbar->setCbOnUpdate(
+		[](UIElement* pElem, void* pData)
+		{
+			MAKE_UIINFO();
+			static uint64_t lastTime = 0;
+			uint64_t currTime = timeInMs();
+			bool isPlaying;
+			EXEC_UIINFO_LOCKED(isPlaying = uiInfo.isPlaying);
+			if (isPlaying && lastTime)
+			{
+				uint64_t diff = currTime - lastTime;
+				EXEC_UIINFO_LOCKED(uiInfo.trackPos += diff);
+			}
+			lastTime = currTime;
+		}
+	);
 
 	auto uiBtnPrevTrack = uiRoot.addElement<UIImage>(11, 88, 64, 64);
 	uiBtnPrevTrack->getImage().downscaleFrom(Image("resource/btn-prev-track.jpg"));
@@ -372,7 +396,7 @@ int modePlayback(int argc, char** argv)
 		uiRoot.onRender(fb, &uiInfo);
 		fb.flush();
 
-		usleep(250 * 1000);
+		usleep(175 * 1000);
 	}
 
 	std::cout << "Exiting...\n";
