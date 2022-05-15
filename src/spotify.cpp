@@ -21,6 +21,7 @@ Spotify::Spotify()
 
 		auto cmd = oss.str();
 		system(cmd.c_str());
+		exit(0);
 	}
 	else if (m_pid < 0)
 	{
