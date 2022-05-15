@@ -339,6 +339,10 @@ int modePlayback(int argc, char** argv)
 			img.downscaleFrom(Image("data/cover.jpg"));
 			auto avgColor = getAvgColor(img);
 
+			float brightness = float(avgColor);
+			if (brightness < 0.7f)
+				avgColor = avgColor * Color(0.7f / brightness);
+
 			EXEC_UIINFO_LOCKED(
 				uiInfo.accentColor = avgColor;
 				uiInfo.coverIsOutdated = false;
