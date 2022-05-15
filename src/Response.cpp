@@ -29,6 +29,10 @@ Response::Response(Token tok, const char* str, uint64_t tokReadSize)
 		m_type = ResponseType::Integer;
 		m_integer = std::stoll(tok.value);
 		break;
+	case Token::Type::Float:
+		m_type = ResponseType::Float;
+		m_float = std::stof(tok.value);
+		break;
 	case Token::Type::String:
 		m_type = ResponseType::String;
 		m_string = tok.value;
@@ -88,6 +92,9 @@ std::string Response::toString() const
 		break;
 	case ResponseType::Integer:
 		str += std::to_string(m_integer);
+		break;
+	case ResponseType::Float:
+		str += std::to_string(m_float);
 		break;
 	case ResponseType::String:
 	{
@@ -191,7 +198,7 @@ const char* Response::readToken(const char* str, Token* pToken)
 		EndToken,
 		TokNone,
 		TokBoolean,
-		TokInteger,
+		TokArithmetic,
 		TokString
 	} state = State::BeginToken;
 
@@ -255,7 +262,7 @@ const char* Response::readToken(const char* str, Token* pToken)
 				{
 					tok.type = Token::Type::Integer;
 					tok.value.push_back(c);
-					state = State::TokInteger;
+					state = State::TokArithmetic;
 				}
 				else if (!std::isspace(c))
 				{
@@ -277,9 +284,14 @@ const char* Response::readToken(const char* str, Token* pToken)
 			if (strncmp("True", tok.value.c_str(), tok.value.size()) && strncmp("False", tok.value.c_str(), tok.value.size()))
 				throw std::runtime_error("Unexpected character while parsing boolean!");
 			break;
-		case State::TokInteger:
+		case State::TokArithmetic:
 			if (std::isdigit(c))
 				tok.value.push_back(c);
+			else if (c == '.')
+			{
+				tok.value.push_back(c);
+				tok.type = Token::Type::Float;
+			}
 			else
 			{
 				--str;

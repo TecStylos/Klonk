@@ -39,6 +39,7 @@ def recvMessage():
 	return message.decode("utf-8")
 
 def sendMessage(message):
+	print(message)
 	encoded = message.encode("utf-8")
 	encodedSize = struct.pack("<I", len(encoded))
 	WRITE_PIPE.write(encodedSize)

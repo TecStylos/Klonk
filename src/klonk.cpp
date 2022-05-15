@@ -64,6 +64,12 @@ struct TouchEvent
 	TouchPos posOld, posNew;
 };
 
+struct TrackSection
+{
+	int start;
+	int duration;
+};
+
 struct UIInfo
 {
 	bool coverIsOutdated = false;
@@ -80,6 +86,7 @@ struct UIInfo
 	bool shouldExit = false;
 	bool spotifyShouldUpdateNow;
 	std::condition_variable condVarSpotify;
+	std::vector<TrackSection> trackSections;
 };
 
 #define MAKE_UIINFO() UIInfo& uiInfo = *(UIInfo*)pData
@@ -145,6 +152,14 @@ void spotifyThreadFunc(UIInfo* pUIInfo)
 					bool imgDownloadSuccess;
 					EXEC_SPOTIFY_LOCKED(imgDownloadSuccess = uiInfo.spotify.exec("urllib.request.urlretrieve('" + newImgURL + "', 'data/cover.jpg')").toString().find("data/cover.jpg") != std::string::npos);
 					EXEC_UIINFO_LOCKED(uiInfo.coverIsOutdated = imgDownloadSuccess);
+
+					Response analysis;
+					EXEC_SPOTIFY_LOCKED(analysis = uiInfo.spotify.exec("spotify.audio_analysis('" + response["item.uri"].getString() + "')"));
+					EXEC_UIINFO_LOCKED(
+						uiInfo.trackSections.clear();
+						for (auto& section : analysis["sections"].getList())
+							uiInfo.trackSections.push_back({ section["start"].getFloat() * 1000.0f, section["duration"].getFloat() * 1000.0f });
+					);
 				}
 			}
 
@@ -357,11 +372,20 @@ int modePlayback(int argc, char** argv)
 			MAKE_UIINFO();
 			int x = pElem->posX();
 			int y = pElem->posY();
+
 			int wFilled;
 			EXEC_UIINFO_LOCKED(wFilled = pElem->width() * uiInfo.trackPos / uiInfo.trackLen);
 			int wEmpty = pElem->width() - wFilled;
 			fb.drawRect(x, y, wFilled, pElem->height(), { 0.1f, 0.7f, 0.2f });
 			fb.drawRect(x + wFilled, y, wEmpty, pElem->height(), { 0.2f });
+
+			EXEC_UIINFO_LOCKED(
+				for (auto& section : uiInfo.trackSections)
+				{
+					int lx = x + pElem->width() * section.start / uiInfo.trackLen;
+					fb.drawLine(lx, y, lx, y + pElem->height(), Color(0.0f));
+				}
+			);
 		}
 	);
 	uiSeekbar->setCbOnDown(
