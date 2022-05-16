@@ -1,8 +1,9 @@
 #include "Response.h"
 
-#include <stdexcept>
 #include <cstring>
 #include <vector>
+
+#include "KlonkError.h"
 
 Response::Response(const std::string& str)
 	: Response(str.c_str())
@@ -56,12 +57,12 @@ Response::Response(Token tok, const char* str, uint64_t tokReadSize)
 		while (tok.type != Token::Type::DictEnd)
 		{
 			if (tok.type != Token::Type::String)
-				throw std::runtime_error("Expected string as dict element key!");
+				throw KlonkError("Expected string as dict element key! (Got '" + tok.value + "' with type " + std::to_string(int(tok.type)) + ")");
 			auto name = tok.value;
 
 			str = readToken(str, &tok);
 			if (tok.type != Token::Type::PairSeparator)
-				throw std::runtime_error("Expected separator between dict key and value!");
+				throw KlonkError("Expected separator between dict key and value! (Got '" + tok.value + "' with type " + std::to_string(int(tok.type)) + ")");
 
 			str = readToken(str, &tok);
 			str += m_dict.insert({ name, Response(tok, str) }).first->second.m_numRead;
@@ -72,7 +73,7 @@ Response::Response(Token tok, const char* str, uint64_t tokReadSize)
 		}
 		break;
 	default:
-		throw std::runtime_error("Unhandled token type!");
+		throw std::runtime_error("Unhandled token type! (Got '" + tok.value + "' with type " + std::to_string(int(tok.type)) + ")");
 	}
 
 	m_numRead = tokReadSize + uint64_t(str - begin);
@@ -266,7 +267,9 @@ const char* Response::readToken(const char* str, Token* pToken)
 				}
 				else if (!std::isspace(c))
 				{
-					throw std::runtime_error("Unexpected character!");
+					char context[32];
+					strncpy(context, str, sizeof(context) - 1);
+					throw KlonkError("Unexpected character '" + std::string(1, c) + "' while beginning a token! (Context: " + context + ")");
 				}
 			}
 			break;
@@ -275,19 +278,19 @@ const char* Response::readToken(const char* str, Token* pToken)
 			if (tok.value == "None")
 				state = State::EndToken;
 			if (strncmp("None", tok.value.c_str(), tok.value.size()))
-				throw std::runtime_error("Unexpected character while parsing 'None'!");
+				throw KlonkError("Unexpected character while parsing 'None'!");
 			break;
 		case State::TokBoolean:
 			tok.value.push_back(c);
 			if (tok.value == "True" || tok.value == "False")
 				state = State::EndToken;
 			if (strncmp("True", tok.value.c_str(), tok.value.size()) && strncmp("False", tok.value.c_str(), tok.value.size()))
-				throw std::runtime_error("Unexpected character while parsing boolean!");
+				throw KlonkError("Unexpected character while parsing boolean!");
 			break;
 		case State::TokArithmetic:
 			if (std::isdigit(c))
 				tok.value.push_back(c);
-			else if (c == '.')
+			else if (c == '.' || c == 'e' || c == '-')
 			{
 				tok.value.push_back(c);
 				tok.type = Token::Type::Float;
