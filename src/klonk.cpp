@@ -11,6 +11,8 @@
 #define WIDTH 320
 #define HEIGHT 240
 
+#define SEEK_PREV_DELAY 3000
+
 int modeQuery(int argc, char** argv)
 {
 	Spotify spotify;
@@ -64,12 +66,6 @@ struct TouchEvent
 	TouchPos posOld, posNew;
 };
 
-struct TrackSection
-{
-	int start;
-	int duration;
-};
-
 struct UIInfo
 {
 	bool coverIsOutdated = false;
@@ -86,7 +82,7 @@ struct UIInfo
 	bool shouldExit = false;
 	bool spotifyShouldUpdateNow;
 	std::condition_variable condVarSpotify;
-	std::vector<TrackSection> trackSections;
+	std::map<int, int> trackSections; // Key: start, Val: duration
 };
 
 #define MAKE_UIINFO() UIInfo& uiInfo = *(UIInfo*)pData
@@ -158,7 +154,7 @@ void spotifyThreadFunc(UIInfo* pUIInfo)
 					EXEC_UIINFO_LOCKED(
 						uiInfo.trackSections.clear();
 						for (auto& section : analysis["sections"].getList())
-							uiInfo.trackSections.push_back({ section["start"].getFloat() * 1000.0f, section["duration"].getFloat() * 1000.0f });
+							uiInfo.trackSections.insert({ section["start"].getFloat() * 1000.0f, section["duration"].getFloat() * 1000.0f });
 					);
 				}
 			}
@@ -382,7 +378,7 @@ int modePlayback(int argc, char** argv)
 			EXEC_UIINFO_LOCKED(
 				for (auto& section : uiInfo.trackSections)
 				{
-					int lx = x + pElem->width() * section.start / uiInfo.trackLen;
+					int lx = x + pElem->width() * section.first / uiInfo.trackLen;
 					fb.drawLine(lx, y, lx, y + pElem->height(), Color(0.0f));
 				}
 			);
@@ -431,7 +427,7 @@ int modePlayback(int argc, char** argv)
 				return false;
 
 			bool seekToBeginning;
-			EXEC_UIINFO_LOCKED(seekToBeginning = uiInfo.trackPos > 5000;);
+			EXEC_UIINFO_LOCKED(seekToBeginning = uiInfo.trackPos > SEEK_PREV_DELAY;);
 			EXEC_SPOTIFY_LOCKED(uiInfo.spotify.exec(seekToBeginning ? "spotify.seek_track(0)" : "spotify.previous_track()"));
 
 			notifySpotifyUpdate(uiInfo);
@@ -478,6 +474,39 @@ int modePlayback(int argc, char** argv)
 			pElem->height() = img.height();
 		}
 	);
+	uiTrackTimeProg->setCbOnDown(
+		[](UIElement* pElem, int x, int y, void* pData)
+		{
+			MAKE_UIINFO();
+
+			if (!pElem->isHit(x, y))
+				return false;
+
+			std::map<int, int>::iterator it;
+			bool gotoPrevTrack = false;
+
+			EXEC_UIINFO_LOCKED(
+				it = uiInfo.trackSections.upper_bound(uiInfo.trackPos);
+				--it;
+
+				if (uiInfo.trackPos - it->first < SEEK_PREV_DELAY)
+				{
+					if (it == uiInfo.trackSections.begin())
+						gotoPrevTrack = true;
+					else
+						--it;
+				}
+			);
+
+			EXEC_SPOTIFY_LOCKED(
+				uiInfo.spotify.exec(gotoPrevTrack ? "spotify.previous_track()" : "spotify.seek_track(" + std::to_string(it->first) + ")");
+			);
+
+			notifySpotifyUpdate(uiInfo);
+
+			return true;
+		}
+	);
 
 	auto uiTrackTimeLeft = uiRoot.addElement<UIImage>(0, 0, 1, 1);
 	uiTrackTimeLeft->setCbOnUpdate(
@@ -498,6 +527,31 @@ int modePlayback(int argc, char** argv)
 			pElem->posY() = 196 - img.height() / 2;
 			pElem->width() = img.width();
 			pElem->height() = img.height();
+		}
+	);
+	uiTrackTimeLeft->setCbOnDown(
+		[](UIElement* pElem, int x, int y, void* pData)
+		{
+			MAKE_UIINFO();
+
+			if (!pElem->isHit(x, y))
+				return false;
+
+			std::map<int, int>::iterator it;
+			bool gotoNextTrack = false;
+
+			EXEC_UIINFO_LOCKED(
+				it = uiInfo.trackSections.upper_bound(uiInfo.trackPos);
+				gotoNextTrack = (it == uiInfo.trackSections.end());
+			);
+
+			EXEC_SPOTIFY_LOCKED(
+				uiInfo.spotify.exec(gotoNextTrack ? "spotify.next_track()" : "spotify.seek_track(" + std::to_string(it->first) + ")");
+			);
+
+			notifySpotifyUpdate(uiInfo);
+
+			return true;
 		}
 	);
 
