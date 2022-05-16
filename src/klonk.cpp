@@ -3,6 +3,7 @@
 #include <queue>
 #include <thread>
 #include <condition_variable>
+#include <filesystem>
 
 #include "spotify.h"
 #include "UserInterface.h"
@@ -72,6 +73,7 @@ struct UIInfo
 	int trackPos = 0;
 	int trackLen = 1;
 	std::string trackName = "<UNKNOWN>";
+	std::string trackID = "";
 	bool isPlaying = false;
 	int volume = 100;
 	Pixel accentColor = { 0.5f };
@@ -123,7 +125,10 @@ void spotifyThreadFunc(UIInfo* pUIInfo)
 {
 	auto& uiInfo = *pUIInfo;
 
-	std::string trackID = "";
+	std::string cacheDir = "./data/cache/";
+
+	if (!std::filesystem::is_directory(cacheDir))
+		std::filesystem::create_directory(cacheDir);
 
 	while (!uiInfo.shouldExit)
 	{
@@ -139,21 +144,60 @@ void spotifyThreadFunc(UIInfo* pUIInfo)
 			response.has("is_playing"))
 		{
 			auto& newTrackID = response["item.id"].getString();
-			if (trackID != newTrackID)
+			bool isNewTrackID;
+			EXEC_UIINFO_LOCKED(isNewTrackID = (uiInfo.trackID != newTrackID));
+			if (isNewTrackID)
 			{
-				trackID = newTrackID;
-				auto& newImgURL = getImageURL(response, "item.album.images");
-				if (!newImgURL.empty())
-				{
-					bool imgDownloadSuccess;
-					EXEC_SPOTIFY_LOCKED(imgDownloadSuccess = uiInfo.spotify.exec("urllib.request.urlretrieve('" + newImgURL + "', 'data/cover.jpg')").toString().find("data/cover.jpg") != std::string::npos);
-					EXEC_UIINFO_LOCKED(uiInfo.coverIsOutdated = imgDownloadSuccess);
+				EXEC_UIINFO_LOCKED(uiInfo.trackID = newTrackID);
 
-					Response analysis;
-					EXEC_SPOTIFY_LOCKED(analysis = uiInfo.spotify.exec("spotify.audio_analysis('" + response["item.uri"].getString() + "')"));
+				std::string trackDir = cacheDir + newTrackID + "/";
+				std::string imgPath = trackDir + "cover.jpg";
+				std::string secPath = trackDir + "sections.txt";
+
+				if (!std::filesystem::is_directory(trackDir))
+					std::filesystem::create_directory(trackDir);
+
+				if (std::filesystem::is_regular_file(imgPath))
+				{
+					EXEC_UIINFO_LOCKED(uiInfo.coverIsOutdated = true);
+				}
+				else
+				{
+					auto& imgURL = getImageURL(response, "item.album.images");
+					if (!imgURL.empty())
+					{
+						bool imgDownloadSuccess;
+						EXEC_SPOTIFY_LOCKED(imgDownloadSuccess = uiInfo.spotify.exec("urllib.request.urlretrieve('" + imgURL + "', '" + imgPath + "')").toString().find(imgPath) != std::string::npos);
+						EXEC_UIINFO_LOCKED(uiInfo.coverIsOutdated = imgDownloadSuccess);
+					}
+				}
+
+				Response sections;
+				if (std::filesystem::is_regular_file(secPath))
+				{
+					std::ifstream file(secPath);
+					std::stringstream buff;
+					buff << file.rdbuf();
+					sections = Response(buff.str());
+				}
+				else
+				{
+					EXEC_SPOTIFY_LOCKED(sections = uiInfo.spotify.exec("spotify.audio_analysis('" + newTrackID + "')"));
+					if (sections.has("sections"))
+					{
+						sections = sections["sections"];
+						std::ofstream file(secPath);
+						auto secStr = sections.toString();
+						file.write(secStr.c_str(), secStr.size());
+						file.close();
+					}
+				}
+
+				if (sections.isList())
+				{
 					EXEC_UIINFO_LOCKED(
 						uiInfo.trackSections.clear();
-						for (auto& section : analysis["sections"].getList())
+						for (auto& section : sections.getList())
 							uiInfo.trackSections.insert({ section["start"].getFloat() * 1000.0f, section["duration"].getFloat() * 1000.0f });
 					);
 				}
@@ -347,7 +391,10 @@ int modePlayback(int argc, char** argv)
 
 			auto& img = ((UIImage*)pElem)->getImage();
 
-			img.downscaleFrom(Image("data/cover.jpg"));
+			std::string trackID;
+			EXEC_UIINFO_LOCKED(trackID = uiInfo.trackID);
+
+			img.downscaleFrom(Image("./data/cache/" + trackID + "/cover.jpg"));
 			auto avgColor = getAvgColor(img);
 
 			float brightness = float(avgColor);
