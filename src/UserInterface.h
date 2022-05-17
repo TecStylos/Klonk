@@ -25,7 +25,7 @@ public:
 	typedef bool (*OnUpCb)(UIElement*, int, int, void*);
 	typedef bool (*OnMoveCb)(UIElement*, int, int, int, int, void*);
 	typedef void (*OnUpdateCb)(UIElement*, void*);
-	typedef void (*OnRenderCb)(const UIElement*, Framebuffer&, void*);
+	typedef void (*OnRenderCb)(const UIElement*, Framebuffer&, const void*);
 	void setCbOnDown(OnDownCb cb) { m_cbOnDown = cb; }
 	void setCbOnUp(OnUpCb cb) { m_cbOnUp = cb; }
 	void setCbOnMove(OnMoveCb cb) { m_cbOnMove = cb; }
@@ -38,7 +38,7 @@ public:
 	virtual bool onUp(int x, int y, void* pData) { return m_cbOnUp ? m_cbOnUp(this, x, y, pData) : false; }
 	virtual bool onMove(int xOld, int yOld, int xNew, int yNew, void* pData) { return m_cbOnMove ? m_cbOnMove(this, xOld, yOld, xNew, yNew, pData) : false; }
 	virtual void onUpdate(void* pData) { if (m_cbOnUpdate) m_cbOnUpdate(this, pData); }
-	virtual void onRender(Framebuffer& fb, void* pData) const { if (m_cbOnRender) m_cbOnRender(this, fb, pData); }
+	virtual void onRender(Framebuffer& fb, const void* pData) const { if (m_cbOnRender) m_cbOnRender(this, fb, pData); }
 protected:
 	int m_x;
 	int m_y;
@@ -60,7 +60,7 @@ public:
 	virtual bool onUp(int x, int y, void* pData) override;
 	virtual bool onMove(int xOld, int yOld, int xNew, int yNew, void* pData) override;
 	virtual void onUpdate(void* pData) override;
-	virtual void onRender(Framebuffer& fb, void* pData) const override;
+	virtual void onRender(Framebuffer& fb, const void* pData) const override;
 public:
 	template <class ElemType, typename... Args>
 	ElemType* addElement(int x, int y, Args... args);
@@ -75,17 +75,12 @@ public:
 	UIImage(int x, int y, int w, int h);
 	UIImage(int x, int y, Image& img);
 public:
-	virtual void onRender(Framebuffer& fb, void* pData) const override;
+	virtual void onRender(Framebuffer& fb, const void* pData) const override;
 public:
 	Image& getImage();
 protected:
 	Image m_img;
 };
-
-class UIText : public UIElement
-{
-};
-
 
 template <class ElemType, typename... Args>
 ElemType* UISpace::addElement(int x, int y, Args... args)

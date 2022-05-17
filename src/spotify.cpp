@@ -56,6 +56,8 @@ std::string Spotify::recvMessage()
 
 Response Spotify::exec(const std::string& command)
 {
+	std::lock_guard lock(m_mtx);
+
 	sendMessage(command);
 	auto reply = recvMessage();
 	return Response(reply);

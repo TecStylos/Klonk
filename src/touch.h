@@ -11,6 +11,12 @@ struct TouchPos
 	int y = 0;
 };
 
+struct TouchEvent
+{
+	enum class Type { None, Up, Down, Move } type = Type::None;
+	TouchPos posOld, posNew;
+};
+
 template <int W, int H, int MIN, int MAX>
 class Touch
 {

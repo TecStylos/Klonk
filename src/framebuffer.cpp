@@ -4,6 +4,16 @@ Framebuffer::Framebuffer(int width, int height)
         : m_width(width), m_height(height), m_buff(width * height), m_file("/dev/fb0", std::ios::binary)
 {}
 
+int Framebuffer::width() const
+{
+	return m_width;
+}
+
+int Framebuffer::height() const
+{
+	return m_height;
+}
+
 void Framebuffer::set(int x, int y, const Color& color)
 {
         m_buff[getIndex(x, y)] = toShort(color);

@@ -46,7 +46,7 @@ void UISpace::onUpdate(void* pData)
 	UIElement::onUpdate(pData);
 }
 
-void UISpace::onRender(Framebuffer& fb, void* pData) const
+void UISpace::onRender(Framebuffer& fb, const void* pData) const
 {
 	for (auto& elem : m_elements)
 		elem->onRender(fb, pData);
@@ -66,7 +66,7 @@ UIImage::UIImage(int x, int y, Image& img)
 	: UIElement(x, y, img.width(), img.height()), m_img(img)
 {}
 
-void UIImage::onRender(Framebuffer& fb, void* pData) const
+void UIImage::onRender(Framebuffer& fb, const void* pData) const
 {
 	fb.drawImage(m_x, m_y, m_img);
 	UIElement::onRender(fb, pData);

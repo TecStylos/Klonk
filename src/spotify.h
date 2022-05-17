@@ -1,5 +1,6 @@
 #pragma once
 
+#include <mutex>
 #include <string>
 #include "Response.h"
 
@@ -8,9 +9,10 @@ class Spotify
 public:
 	Spotify();
 	~Spotify();
-public:
+private:
 	void sendMessage(const std::string& message);
 	std::string recvMessage();
+public:
 	Response exec(const std::string& command);
 private:
 	void close(int& fd);
@@ -22,4 +24,5 @@ private:
 		int fdRead = 0, fdWrite = 0;
 	} m_cppToPy, m_pyToCpp;
 	pid_t m_pid = 0;
+	std::mutex m_mtx;
 };
