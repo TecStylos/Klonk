@@ -8,13 +8,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 add_executable(
 	klonk
 	"src/main.cpp"
-	#"src/klonk.cpp"
 	"src/Image.cpp"
 	"src/spotify.cpp"
 	"src/Response.cpp"
 	"src/framebuffer.cpp"
 	"src/UserInterface.cpp"
 	"src/GenTextImage.cpp"
+	"src/AppHome.cpp"
 	"src/AppSpotify.cpp"
 	"src/stb_image.cpp"
 	"src/stb_image_write.cpp"

@@ -3,6 +3,8 @@
 
 #include "KlonkError.h"
 #include "SharedQueue.h"
+
+#include "AppHome.h"
 #include "AppSpotify.h"
 
 #define WIDTH 320
@@ -45,6 +47,13 @@ void touchThreadFunc(SharedQueue<TouchEvent>* pTouchEvents)
 	}
 }
 
+template<typename AppType, typename... Args>
+void addApplication(std::map<std::string, ApplicationRef>& apps, Args&... args)
+{
+	auto app = ApplicationRef(new AppType(args...));
+	apps.insert({ app->getName(), app });
+}
+
 int main(int argc, const char** argv)
 {
 	Framebuffer fb(WIDTH, HEIGHT);
@@ -56,11 +65,11 @@ int main(int argc, const char** argv)
 
 	std::map<std::string, ApplicationRef> applications;
 
-	//applications.insert({ "home", std::make_shared<Application>(new AppHome(fb, applications)) });
-	applications.insert({ "spotify", ApplicationRef(new AppSpotify(fb)) });
+	addApplication<AppHome>(applications, fb, applications);
+	addApplication<AppSpotify>(applications, fb);
 
 	const char* changeAppName = nullptr;
-	auto currApp = applications.find("spotify");
+	auto currApp = applications.find("home");
 
 	while (true)
 	{
@@ -82,6 +91,7 @@ int main(int argc, const char** argv)
 
 		if ((changeAppName = currApp->second->onUpdate()))
 		{
+			currApp->second->appToSwitchTo = nullptr;
 			currApp = applications.find(changeAppName);
 			if (currApp == applications.end())
 				throw KlonkError("Unknown application '" + std::string(changeAppName) + "'!");

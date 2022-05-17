@@ -15,6 +15,8 @@ public:
 	AppSpotify() = delete;
 	AppSpotify(Framebuffer& fb);
 	virtual ~AppSpotify() = default;
+public:
+	virtual const char* getName() const override { return "spotify"; }
 private:
 	void threadFunc();
 	void initInstantUpdate();

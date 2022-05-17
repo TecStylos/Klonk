@@ -55,6 +55,22 @@ AppSpotify::AppSpotify(Framebuffer& fb)
 {
 	m_thread = std::thread(&AppSpotify::threadFunc, this);
 
+	auto uiBtnRetToHome = m_uiRoot.addElement<UIImage>(12, 12, 24, 24);
+	uiBtnRetToHome->getImage().downscaleFrom(Image("./resource/btn-ret-to-home.jpg"));
+	uiBtnRetToHome->setCbOnDown(
+		[](UIElement* pElem, int x, int y, void* pData)
+		{
+			DECL_APP_SPOTIFY(pData);
+
+			if (!pElem->isHit(x, y))
+				return false;
+
+			app.appToSwitchTo = "home";
+
+			return true;
+		}
+	);
+
 	auto uiTrackName = m_uiRoot.addElement<UIImage>(0, 0, 1, 1);
 	uiTrackName->setCbOnUpdate(
 		[](UIElement* pElem, void* pData)
