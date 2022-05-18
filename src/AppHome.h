@@ -12,7 +12,7 @@ public:
 	virtual ~AppHome() = default;
 public:
 	virtual const char* onUpdate() override;
-	virtual const char* getName() const override { return "home"; }
+	virtual const char* getName() const override { return "Home"; }
 private:
 	bool m_initialized = false;
 	std::map<std::string, ApplicationRef>& m_apps;

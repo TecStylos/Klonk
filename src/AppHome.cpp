@@ -25,6 +25,9 @@ const char* AppHome::onUpdate()
 
 		for (auto& app : m_apps)
 		{
+			if (app.first == "Home")
+				continue;
+
 			auto uiTile = m_uiRoot.addElement<UISpace>(x, y, APP_HOME_TILE_WIDTH, APP_HOME_TILE_HEIGHT);
 			uiTile->setCbOnDown(
 				[](UIElement* pElem, int x, int y, void* pData)
@@ -52,7 +55,7 @@ const char* AppHome::onUpdate()
 				}
 			);
 
-			auto nameImg = genTextImage(app.first, 14);
+			auto nameImg = genTextImage(app.first, 16);
 			auto uiTileName = uiTile->addElement<UIImage>((APP_HOME_TILE_WIDTH - nameImg.width()) / 2, APP_HOME_TILE_HEIGHT - APP_HOME_TILE_PADDING_Y - nameImg.height(), nameImg);
 
 			m_tiles.insert({ uiTile, app.second->getName() });
@@ -66,5 +69,5 @@ const char* AppHome::onUpdate()
 		}
 	}
 
-	return appToSwitchTo;
+	return Application::onUpdate();
 }

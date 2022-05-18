@@ -5,6 +5,7 @@
 #include "SharedQueue.h"
 
 #include "AppHome.h"
+#include "AppClock.h"
 #include "AppSpotify.h"
 
 #define WIDTH 320
@@ -65,11 +66,12 @@ int main(int argc, const char** argv)
 
 	std::map<std::string, ApplicationRef> applications;
 
-	addApplication<AppHome>(applications, fb, applications);
+	addApplication<AppClock>(applications, fb);
 	addApplication<AppSpotify>(applications, fb);
+	addApplication<AppHome>(applications, fb, applications);
 
 	const char* changeAppName = nullptr;
-	auto currApp = applications.find("home");
+	auto currApp = applications.find("Home");
 
 	while (true)
 	{
