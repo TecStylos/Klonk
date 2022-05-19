@@ -64,7 +64,8 @@ AppClock::AppClock(Framebuffer& fb)
 	uiMinuteHand->setCbOnRender(
 		[](const UIElement* pElem, Framebuffer& fb, const void* pData)
 		{
-			float rad = DegToRad(((AppClock*)pData)->m_time.minutes / 60.0f * 360.0f);
+			auto& time = ((AppClock*)pData)->m_time;
+			float rad = DegToRad((time.minutes + time.seconds / 60.0f) / 60.0f * 360.0f);
 			fb.drawLine(
 				pElem->posX(), pElem->posY(),
 				pElem->posX() + (pElem->width() * std::sin(rad)),
