@@ -6,6 +6,7 @@
 #define APP_HOME_TILE_HEIGHT 100
 #define APP_HOME_TILE_PADDING_X 5
 #define APP_HOME_TILE_PADDING_Y 5
+#define APP_HOME_TILE_NAME_HEIGHT 16
 
 AppHome::AppHome(Framebuffer& fb, std::map<std::string, ApplicationRef>& apps)
 	: Application(fb), m_apps(apps)
@@ -43,19 +44,15 @@ const char* AppHome::onUpdate()
 				}
 			);
 
-			auto uiBkg = uiTile->addElement<UIElement>(APP_HOME_TILE_PADDING_X, APP_HOME_TILE_PADDING_Y, APP_HOME_TILE_WIDTH - APP_HOME_TILE_PADDING_X * 2, APP_HOME_TILE_HEIGHT - APP_HOME_TILE_PADDING_Y * 2);
-			uiBkg->setCbOnRender(
-				[](const UIElement* pElem, Framebuffer& fb, const void* pData)
-				{
-					fb.drawRect(
-						pElem->posX(), pElem->posY(),
-						pElem->width(), pElem->height(),
-						{ 0.3f }
-					);
-				}
+			int iconDim = std::min(
+				APP_HOME_TILE_WIDTH - APP_HOME_TILE_PADDING_X * 2,
+				APP_HOME_TILE_HEIGHT - APP_HOME_TILE_PADDING_Y * 2 - APP_HOME_TILE_NAME_HEIGHT
 			);
 
-			auto nameImg = genTextImage(app.first, 16);
+			auto uiTileIcon = uiTile->addElement<UIImage>((APP_HOME_TILE_WIDTH - iconDim) / 2, APP_HOME_TILE_PADDING_Y, iconDim, iconDim);
+			uiTileIcon->getImage().downscaleFrom(Image("resource/app-ico-" + app.first + ".jpg"));
+
+			auto nameImg = genTextImage(app.first, APP_HOME_TILE_NAME_HEIGHT);
 			auto uiTileName = uiTile->addElement<UIImage>((APP_HOME_TILE_WIDTH - nameImg.width()) / 2, APP_HOME_TILE_HEIGHT - APP_HOME_TILE_PADDING_Y - nameImg.height(), nameImg);
 
 			m_tiles.insert({ uiTile, app.second->getName() });
