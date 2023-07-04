@@ -4,7 +4,6 @@
 #include <ctime>
 #include <chrono>
 
-#include "ui/MakeHomeButton.h"
 #include "ui/GenTextImage.h"
 
 float DegToRad(float deg)
@@ -29,8 +28,6 @@ HrMinSec getCurrHrMinSec()
 AppClock::AppClock(Framebuffer& fb)
 	: Application(fb)
 {
-	auto uiBtnRetToHome = makeHomeButton(&m_uiRoot);
-
 	int radius = 100;
 
 	for (int hr = 1; hr < 13; ++hr)

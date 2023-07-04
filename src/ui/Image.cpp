@@ -7,7 +7,7 @@
 #include "stb/stb_image_write.h"
 
 
-inline bool endswith(const std::string& full, const std::string sub)
+inline bool endswith(const std::string& full, const std::string& sub)
 {
     return full.find(sub) == full.size() - sub.size();
 }

@@ -56,8 +56,6 @@ AppSpotify::AppSpotify(Framebuffer& fb)
 {
 	m_thread = std::thread(&AppSpotify::threadFunc, this);
 
-	auto uiBtnRetToHome = makeHomeButton(&m_uiRoot);
-
 	auto uiTrackName = m_uiRoot.addElement<UIImage>(0, 0, 1, 1);
 	uiTrackName->setCbOnUpdate(
 		[](UIElement* pElem, void* pData)

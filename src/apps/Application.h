@@ -5,13 +5,14 @@
 #include "ui/framebuffer.h"
 #include "ui/touch.h"
 #include "ui/UserInterface.h"
+#include "ui/MakeHomeButton.h"
 
 class Application
 {
 public:
 	Application() = delete;
 	Application(Framebuffer& fb)
-		: m_fb(fb), m_uiRoot(0, 0, fb.width(), fb.height())
+		: m_fb(fb), m_uiRoot(0, 0, fb.width(), fb.height()), m_uiBtnRetToHome(makeHomeButton(&m_uiRoot))
 	{}
 	virtual ~Application() = default;
 public:
@@ -24,6 +25,7 @@ public:
 protected:
 	Framebuffer& m_fb;
 	UISpace m_uiRoot;
+	UIImage* m_uiBtnRetToHome;
 public:
 	const char* appToSwitchTo = nullptr;
 };
