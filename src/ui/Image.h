@@ -4,6 +4,7 @@
 #include <vector>
 #include <stdexcept>
 #include <cmath>
+#include <cstdint>
 
 #include "stb_image.h"
 

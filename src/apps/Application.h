@@ -2,9 +2,9 @@
 
 #include <memory>
 
-#include "framebuffer.h"
-#include "touch.h"
-#include "UserInterface.h"
+#include "ui/framebuffer.h"
+#include "ui/touch.h"
+#include "ui/UserInterface.h"
 
 class Application
 {

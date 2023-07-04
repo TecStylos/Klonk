@@ -4,8 +4,8 @@
 #include <ctime>
 #include <chrono>
 
-#include "MakeHomeButton.h"
-#include "GenTextImage.h"
+#include "ui/MakeHomeButton.h"
+#include "ui/GenTextImage.h"
 
 float DegToRad(float deg)
 {

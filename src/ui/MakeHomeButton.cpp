@@ -1,6 +1,6 @@
 #include "MakeHomeButton.h"
 
-#include "Application.h"
+#include "apps/Application.h"
 
 UIImage* makeHomeButton(UISpace* root)
 {

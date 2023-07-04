@@ -4,9 +4,9 @@
 #include "KlonkError.h"
 #include "SharedQueue.h"
 
-#include "AppHome.h"
-#include "AppClock.h"
-#include "AppSpotify.h"
+#include "apps/AppHome.h"
+#include "apps/AppClock.h"
+#include "apps/AppSpotify.h"
 
 #define WIDTH 320
 #define HEIGHT 240

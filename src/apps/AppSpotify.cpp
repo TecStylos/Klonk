@@ -7,8 +7,8 @@
 #include <chrono>
 
 #include "KlonkError.h"
-#include "GenTextImage.h"
-#include "MakeHomeButton.h"
+#include "ui/GenTextImage.h"
+#include "ui/MakeHomeButton.h"
 
 #define SEEK_PREV_DELAY 3000
 
@@ -22,7 +22,7 @@
 
 #define APP_SPOTIFY_LOCKED(code) \
 { \
-	std::lock_guard lock(m_mtx); \
+	std::lock_guard<std::mutex> lock(m_mtx); \
 	code; \
 }
 

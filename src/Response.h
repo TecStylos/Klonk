@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <cstdint>
 
 enum class ResponseType { None, Boolean, Integer, Float, String, List, Dict };
 

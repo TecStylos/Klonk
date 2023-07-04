@@ -8,18 +8,20 @@ set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 add_executable(
 	klonk
 	"src/main.cpp"
-	"src/Image.cpp"
 	"src/spotify.cpp"
 	"src/Response.cpp"
-	"src/framebuffer.cpp"
-	"src/UserInterface.cpp"
-	"src/GenTextImage.cpp"
-	"src/MakeHomeButton.cpp"
-	"src/AppHome.cpp"
-	"src/AppClock.cpp"
-	"src/AppSpotify.cpp"
 	"src/stb_image.cpp"
 	"src/stb_image_write.cpp"
+
+	"src/ui/Image.cpp"
+	"src/ui/framebuffer.cpp"
+	"src/ui/UserInterface.cpp"
+	"src/ui/GenTextImage.cpp"
+	"src/ui/MakeHomeButton.cpp"
+	
+	"src/apps/AppHome.cpp"
+	"src/apps/AppClock.cpp"
+	"src/apps/AppSpotify.cpp"
 )
 
 target_include_directories(
