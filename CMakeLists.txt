@@ -21,6 +21,7 @@ add_executable(
 	"src/apps/AppHome.cpp"
 	"src/apps/AppClock.cpp"
 	"src/apps/AppSpotify.cpp"
+	"src/apps/AppSettings.cpp"
 	
 	"src/spotify/spotify.cpp"
 	"src/spotify/Response.cpp"
