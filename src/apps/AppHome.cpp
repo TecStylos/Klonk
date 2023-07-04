@@ -11,6 +11,7 @@
 AppHome::AppHome(Framebuffer& fb, std::map<std::string, ApplicationRef>& apps)
 	: Application(fb), m_apps(apps)
 {
+	m_uiBtnRetToHome->hide();
 	auto titleImg = genTextImage("Home", 18);
 	auto uiTitle = m_uiRoot.addElement<UIImage>((m_uiRoot.width() - titleImg.width()) / 2, 0, titleImg);
 }

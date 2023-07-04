@@ -39,3 +39,4 @@ Place your client-id and client-secret in the `data/client_id.txt` and `data/cli
 
 When you are done, run `./bin/[configuration]/klonk` to start the application.
 The first time you run it, you will be asked to authorize the application.
+The authorization process requires a browser to log in with your Spotify account. This can be done using a VNC-Server.

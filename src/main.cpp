@@ -7,6 +7,7 @@
 #include "apps/AppHome.h"
 #include "apps/AppClock.h"
 #include "apps/AppSpotify.h"
+#include "apps/AppSettings.h"
 
 #define WIDTH 320
 #define HEIGHT 240
@@ -68,6 +69,7 @@ int main(int argc, const char** argv)
 
 	addApplication<AppClock>(applications, fb);
 	addApplication<AppSpotify>(applications, fb);
+	addApplication<AppSettings>(applications, fb);
 	addApplication<AppHome>(applications, fb, applications);
 
 	const char* changeAppName = nullptr;

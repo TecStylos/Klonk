@@ -33,12 +33,16 @@ public:
 	void setCbOnRender(OnRenderCb cb) { m_cbOnRender = cb; }
 public:
 	bool isHit(int x, int y) const;
+	bool isHidden() const;
+	bool isVisible() const;
+	void hide();
+	void show();
 public:
-	virtual bool onDown(int x, int y, void* pData) { return m_cbOnDown ? m_cbOnDown(this, x, y, pData) : false; }
-	virtual bool onUp(int x, int y, void* pData) { return m_cbOnUp ? m_cbOnUp(this, x, y, pData) : false; }
-	virtual bool onMove(int xOld, int yOld, int xNew, int yNew, void* pData) { return m_cbOnMove ? m_cbOnMove(this, xOld, yOld, xNew, yNew, pData) : false; }
-	virtual void onUpdate(void* pData) { if (m_cbOnUpdate) m_cbOnUpdate(this, pData); }
-	virtual void onRender(Framebuffer& fb, const void* pData) const { if (m_cbOnRender) m_cbOnRender(this, fb, pData); }
+	virtual bool onDown(int x, int y, void* pData) { return (m_cbOnDown && isVisible()) ? m_cbOnDown(this, x, y, pData) : false; }
+	virtual bool onUp(int x, int y, void* pData) { return (m_cbOnUp && isVisible()) ? m_cbOnUp(this, x, y, pData) : false; }
+	virtual bool onMove(int xOld, int yOld, int xNew, int yNew, void* pData) { return (m_cbOnMove) ? m_cbOnMove(this, xOld, yOld, xNew, yNew, pData) : false; }
+	virtual void onUpdate(void* pData) { if (m_cbOnUpdate && isVisible()) m_cbOnUpdate(this, pData); }
+	virtual void onRender(Framebuffer& fb, const void* pData) const { if (m_cbOnRender && isVisible()) m_cbOnRender(this, fb, pData); }
 protected:
 	int m_x;
 	int m_y;
@@ -49,6 +53,8 @@ protected:
 	OnMoveCb m_cbOnMove = nullptr;
 	OnUpdateCb m_cbOnUpdate = nullptr;
 	OnRenderCb m_cbOnRender = nullptr;
+private:
+	bool m_isHidden = false;
 };
 
 class UISpace : public UIElement

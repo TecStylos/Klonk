@@ -11,6 +11,26 @@ bool UIElement::isHit(int x, int y) const
 		m_y <= y && y < m_y + m_h;
 }
 
+bool UIElement::isHidden() const
+{
+	return m_isHidden;
+}
+
+bool UIElement::isVisible() const
+{
+	return !m_isHidden;
+}
+
+void UIElement::hide()
+{
+	m_isHidden = true;
+}
+
+void UIElement::show()
+{
+	m_isHidden = false;
+}
+
 UISpace::UISpace(int x, int y, int w, int h)
 	: UIElement(x, y, w, h)
 {}
