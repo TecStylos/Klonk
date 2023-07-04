@@ -1,1 +1,3 @@
 app-ico-Settings.jpg -> By Freepik
+
+app-ico-Spotify.jpg -> By Spotify
