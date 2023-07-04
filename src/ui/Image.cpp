@@ -4,7 +4,7 @@
 #include <cctype>
 #include <cmath>
 
-#include "stb_image_write.h"
+#include "stb/stb_image_write.h"
 
 
 inline bool endswith(const std::string& full, const std::string sub)

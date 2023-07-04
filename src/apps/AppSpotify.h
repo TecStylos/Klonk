@@ -7,7 +7,7 @@
 #include <map>
 
 #include "Application.h"
-#include "spotify.h"
+#include "spotify/spotify.h"
 
 class AppSpotify : public Application
 {

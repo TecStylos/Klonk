@@ -8,10 +8,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 add_executable(
 	klonk
 	"src/main.cpp"
-	"src/spotify.cpp"
-	"src/Response.cpp"
-	"src/stb_image.cpp"
-	"src/stb_image_write.cpp"
+
+	"src/stb/stb_image.cpp"
+	"src/stb/stb_image_write.cpp"
 
 	"src/ui/Image.cpp"
 	"src/ui/framebuffer.cpp"
@@ -22,6 +21,9 @@ add_executable(
 	"src/apps/AppHome.cpp"
 	"src/apps/AppClock.cpp"
 	"src/apps/AppSpotify.cpp"
+	
+	"src/spotify/spotify.cpp"
+	"src/spotify/Response.cpp"
 )
 
 target_include_directories(

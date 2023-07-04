@@ -6,7 +6,7 @@
 #include <cmath>
 #include <cstdint>
 
-#include "stb_image.h"
+#include "stb/stb_image.h"
 
 struct Pixel
 {
