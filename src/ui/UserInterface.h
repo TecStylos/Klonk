@@ -38,11 +38,11 @@ public:
 	void hide();
 	void show();
 public:
-	virtual bool onDown(int x, int y, void* pData) { return (m_cbOnDown && isVisible()) ? m_cbOnDown(this, x, y, pData) : false; }
-	virtual bool onUp(int x, int y, void* pData) { return (m_cbOnUp && isVisible()) ? m_cbOnUp(this, x, y, pData) : false; }
-	virtual bool onMove(int xOld, int yOld, int xNew, int yNew, void* pData) { return (m_cbOnMove) ? m_cbOnMove(this, xOld, yOld, xNew, yNew, pData) : false; }
-	virtual void onUpdate(void* pData) { if (m_cbOnUpdate && isVisible()) m_cbOnUpdate(this, pData); }
-	virtual void onRender(Framebuffer& fb, const void* pData) const { if (m_cbOnRender && isVisible()) m_cbOnRender(this, fb, pData); }
+	bool onDown(int x, int y, void* pData) { return (m_cbOnDown && isVisible()) ? m_cbOnDown(this, x, y, pData) : false; }
+	bool onUp(int x, int y, void* pData) { return (m_cbOnUp && isVisible()) ? m_cbOnUp(this, x, y, pData) : false; }
+	bool onMove(int xOld, int yOld, int xNew, int yNew, void* pData) { return (m_cbOnMove) ? m_cbOnMove(this, xOld, yOld, xNew, yNew, pData) : false; }
+	void onUpdate(void* pData) { if (m_cbOnUpdate && isVisible()) m_cbOnUpdate(this, pData); }
+	void onRender(Framebuffer& fb, const void* pData) const { if (m_cbOnRender && isVisible()) m_cbOnRender(this, fb, pData); }
 protected:
 	int m_x;
 	int m_y;
@@ -62,12 +62,6 @@ class UISpace : public UIElement
 public:
 	UISpace(int x, int y, int w, int h);
 public:
-	virtual bool onDown(int x, int y, void* pData) override;
-	virtual bool onUp(int x, int y, void* pData) override;
-	virtual bool onMove(int xOld, int yOld, int xNew, int yNew, void* pData) override;
-	virtual void onUpdate(void* pData) override;
-	virtual void onRender(Framebuffer& fb, const void* pData) const override;
-public:
 	template <class ElemType, typename... Args>
 	ElemType* addElement(int x, int y, Args... args);
 	void remElement(UIElement* pElem);
@@ -80,8 +74,6 @@ class UIImage : public UIElement
 public:
 	UIImage(int x, int y, int w, int h);
 	UIImage(int x, int y, Image& img);
-public:
-	virtual void onRender(Framebuffer& fb, const void* pData) const override;
 public:
 	Image& getImage();
 protected:

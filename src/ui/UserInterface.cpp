@@ -33,44 +33,47 @@ void UIElement::show()
 
 UISpace::UISpace(int x, int y, int w, int h)
 	: UIElement(x, y, w, h)
-{}
-
-bool UISpace::onDown(int x, int y, void* pData)
 {
-	for (auto& elem : m_elements)
-		if (elem->onDown(x, y, pData))
-			return true;
-	return UIElement::onDown(x, y, pData);
-}
+	setCbOnDown(
+		[](UIElement* pThis, int x, int y, void* pData) {
+			for (auto& elem : ((UISpace*)pThis)->m_elements)
+				if (elem->onDown(x, y, pData))
+					return true;
+			return false;
+		}
+	);
 
-bool UISpace::onUp(int x, int y, void* pData)
-{
-	for (auto& elem : m_elements)
-		if (elem->onUp(x, y, pData))
-			return true;
-	return UIElement::onUp(x, y, pData);
-}
+	setCbOnUp(
+		[](UIElement* pThis, int x, int y, void* pData) {
+			for (auto& elem : ((UISpace*)pThis)->m_elements)
+				if (elem->onUp(x, y, pData))
+					return true;
+			return false;
+		}
+	);
 
-bool UISpace::onMove(int xOld, int yOld, int xNew, int yNew, void* pData)
-{
-	for (auto& elem : m_elements)
-		if (elem->onMove(xOld, yOld, xNew, yNew, pData))
-			return true;
-	return UIElement::onMove(xOld, yOld, xNew, yNew, pData);
-}
+	setCbOnMove(
+		[](UIElement* pThis, int xOld, int yOld, int xNew, int yNew, void* pData) {
+			for (auto& elem : ((UISpace*)pThis)->m_elements)
+				if (elem->onMove(xOld, yOld, xNew, yNew, pData))
+					return true;
+			return false;
+		}
+	);
 
-void UISpace::onUpdate(void* pData)
-{
-	for (auto& elem : m_elements)
-		elem->onUpdate(pData);
-	UIElement::onUpdate(pData);
-}
+	setCbOnUpdate(
+		[](UIElement* pThis, void* pData) {
+			for (auto& elem : ((UISpace*)pThis)->m_elements)
+				elem->onUpdate(pData);
+		}
+	);
 
-void UISpace::onRender(Framebuffer& fb, const void* pData) const
-{
-	for (auto& elem : m_elements)
-		elem->onRender(fb, pData);
-	UIElement::onRender(fb, pData);
+	setCbOnRender(
+		[](const UIElement* pThis, Framebuffer& fb, const void* pData) {
+			for (auto& elem : ((const UISpace*)pThis)->m_elements)
+				elem->onRender(fb, pData);
+		}
+	);
 }
 
 void UISpace::remElement(UIElement* pElem)
@@ -80,17 +83,17 @@ void UISpace::remElement(UIElement* pElem)
 
 UIImage::UIImage(int x, int y, int w, int h)
 	: UIElement(x, y, w, h), m_img(w, h)
-{}
+{
+	setCbOnRender(
+		[](const UIElement* pThis, Framebuffer& fb, const void* pData) {
+			fb.drawImage(((const UIImage*)pThis)->m_x, ((const UIImage*)pThis)->m_y, ((const UIImage*)pThis)->m_img);
+		}
+	);
+}
 
 UIImage::UIImage(int x, int y, Image& img)
 	: UIElement(x, y, img.width(), img.height()), m_img(img)
 {}
-
-void UIImage::onRender(Framebuffer& fb, const void* pData) const
-{
-	fb.drawImage(m_x, m_y, m_img);
-	UIElement::onRender(fb, pData);
-}
 
 Image& UIImage::getImage()
 {
