@@ -224,9 +224,9 @@ AppSpotify::AppSpotify(Framebuffer& fb)
 			if (!pElem->isHit(x, y))
 				return false;
 
-			app.m_trackPos = (x - pElem->posX()) * app.m_trackLen / pElem->width();
+			int x = (x - pElem->posX()) * app.m_trackLen / pElem->width();
 
-			app.m_spotify.exec("spotify.seek_track(" + std::to_string(app.m_trackPos) + ")");
+			app.m_spotify.exec("spotify.seek_track(" + std::to_string(x) + ")");
 
 			app.initInstantUpdate();
 
