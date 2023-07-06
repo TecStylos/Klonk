@@ -1,6 +1,6 @@
 #include "AppHome.h"
 
-#include "ui/GenTextImage.h"
+#include "uibackend/GenTextImage.h"
 
 #define APP_HOME_TILE_WIDTH 100
 #define APP_HOME_TILE_HEIGHT 100

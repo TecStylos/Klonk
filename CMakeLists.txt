@@ -12,11 +12,14 @@ add_executable(
 	"src/stb/stb_image.cpp"
 	"src/stb/stb_image_write.cpp"
 
-	"src/ui/Image.cpp"
-	"src/ui/framebuffer.cpp"
 	"src/ui/UserInterface.cpp"
-	"src/ui/GenTextImage.cpp"
+	"src/ui/UISpace.cpp"
+	"src/ui/UIImage.cpp"
 	"src/ui/MakeHomeButton.cpp"
+	
+	"src/uibackend/Image.cpp"
+	"src/uibackend/framebuffer.cpp"
+	"src/uibackend/GenTextImage.cpp"
 	
 	"src/apps/AppHome.cpp"
 	"src/apps/AppClock.cpp"

@@ -2,8 +2,8 @@
 
 #include <set>
 
-#include "framebuffer.h"
-#include "touch.h"
+#include "uibackend/framebuffer.h"
+#include "uibackend/touch.h"
 
 class UIElement
 {
@@ -56,37 +56,3 @@ protected:
 private:
 	bool m_isHidden = false;
 };
-
-class UISpace : public UIElement
-{
-public:
-	UISpace(int x, int y, int w, int h);
-public:
-	template <class ElemType, typename... Args>
-	ElemType* addElement(int x, int y, Args... args);
-	void remElement(UIElement* pElem);
-private:
-	std::set<UIElement*> m_elements;
-};
-
-class UIImage : public UIElement
-{
-public:
-	UIImage(int x, int y, int w, int h);
-	UIImage(int x, int y, Image& img);
-private:
-	void initCallbacks();
-public:
-	Image& getImage();
-protected:
-	Image m_img;
-};
-
-template <class ElemType, typename... Args>
-ElemType* UISpace::addElement(int x, int y, Args... args)
-{
-	static_assert(std::is_base_of<UIElement, ElemType>::value, "ElemType not derived from BaseClass");
-	ElemType* pElem = new ElemType(m_x + x, m_y + y, args...);
-	m_elements.insert(pElem);
-	return pElem;
-}

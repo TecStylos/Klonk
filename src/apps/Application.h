@@ -2,8 +2,6 @@
 
 #include <memory>
 
-#include "ui/framebuffer.h"
-#include "ui/touch.h"
 #include "ui/UserInterface.h"
 #include "ui/MakeHomeButton.h"
 

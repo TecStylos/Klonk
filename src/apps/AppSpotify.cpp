@@ -7,7 +7,7 @@
 #include <chrono>
 
 #include "KlonkError.h"
-#include "ui/GenTextImage.h"
+#include "uibackend/GenTextImage.h"
 #include "ui/MakeHomeButton.h"
 
 #define SEEK_PREV_DELAY 3000

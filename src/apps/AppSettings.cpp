@@ -1,6 +1,6 @@
 #include "AppSettings.h"
 
-#include "ui/GenTextImage.h"
+#include "uibackend/GenTextImage.h"
 
 AppSettings::AppSettings(Framebuffer& fb)
     : Application(fb)
