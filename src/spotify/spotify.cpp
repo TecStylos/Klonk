@@ -37,9 +37,10 @@ Spotify::~Spotify()
 	close(m_cppToPy.fdWrite);
 }
 
-void Spotify::sendMessage(const std::string& message)
+void Spotify::sendMessage(const std::string& message, bool ignoreResponse)
 {
 	uint32_t msgSize = message.size();
+	writeNum(&ignoreResponse, sizeof(ignoreResponse));
 	writeNum(&msgSize, sizeof(msgSize));
 	writeNum(message.c_str(), msgSize);
 }
@@ -54,13 +55,18 @@ std::string Spotify::recvMessage()
 	return std::string(buff.data());
 }
 
-Response Spotify::exec(const std::string& command)
+Response Spotify::exec(const std::string& command, bool ignoreResponse)
 {
+	static const Response ignoredResponse = Response(std::string("{ \"type\": \"IgnoredResponse\" }"));
+	
 	std::lock_guard lock(m_mtx);
 
-	sendMessage(command);
-	auto reply = recvMessage();
-	return Response(reply);
+	sendMessage(command, ignoreResponse);
+
+	if (ignoreResponse)
+		return ignoredResponse;
+
+	return Response(recvMessage());
 }
 
 void Spotify::readNum(void* buff, uint64_t num)

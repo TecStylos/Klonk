@@ -10,10 +10,10 @@ public:
 	Spotify();
 	~Spotify();
 private:
-	void sendMessage(const std::string& message);
+	void sendMessage(const std::string& message, bool ignoreResponse);
 	std::string recvMessage();
 public:
-	Response exec(const std::string& command);
+	Response exec(const std::string& command, bool ignoreResponse = true);
 private:
 	void close(int& fd);
 	void readNum(void* buff, uint64_t num);

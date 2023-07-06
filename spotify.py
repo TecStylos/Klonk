@@ -33,10 +33,12 @@ def _recvNum(num):
 	return buff
 
 def recvMessage():
-	buff = _recvNum(4)
-	msgSize = struct.unpack("<I", buff)[0]
+	ignoreResponseBuff = _recvNum(1)
+	ignoreResponse = struct.unpack("<B", ignoreResponseBuff)[0]
+	msgSizeBuff = _recvNum(4)
+	msgSize = struct.unpack("<I", msgSizeBuff)[0]
 	message = _recvNum(msgSize)
-	return message.decode("utf-8")
+	return ignoreResponse, message.decode("utf-8")
 
 def sendMessage(message):
 	#print(message)
@@ -49,7 +51,7 @@ if __name__ == "__main__":
 	spotify = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=" ".join(scopes)))
 	result = ""
 	while True:
-		command = recvMessage()
+		ignoreResponse, command = recvMessage()
 		try:
 			exec(f"result = {command}", globals(), locals())
 		except KeyboardInterrupt:
@@ -68,4 +70,5 @@ if __name__ == "__main__":
 			result = f"'{result}'"
 
 		#print(f"---- RESULT ----\n{result}\n----------------")
-		sendMessage(str(result))
+		if (not ignoreResponse)
+			sendMessage(str(result))

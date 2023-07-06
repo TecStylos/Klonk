@@ -401,7 +401,7 @@ void AppSpotify::threadFunc()
 
 	while (true)
 	{
-		Response response = m_spotify.exec("spotify.current_playback()");
+		Response response = m_spotify.exec("spotify.current_playback()", false);
 
 		if (
 			response.has("item.id") &&
@@ -433,7 +433,7 @@ void AppSpotify::threadFunc()
 				else if (response.has("item.album.images.0.url"))
 				{
 					auto& imgURL = response["item.album.images.0.url"].getString();
-					m_loadNewCoverFromDisk = m_spotify.exec("urllib.request.urlretrieve('" + imgURL + "', '" + imgPath + "')").toString().find(imgPath) != std::string::npos;
+					m_loadNewCoverFromDisk = m_spotify.exec("urllib.request.urlretrieve('" + imgURL + "', '" + imgPath + "')", false).toString().find(imgPath) != std::string::npos;
 				}
 
 				Response sections;
@@ -444,7 +444,7 @@ void AppSpotify::threadFunc()
 					buff << file.rdbuf();
 					sections = Response(buff.str());
 				}
-				else if ((sections = m_spotify.exec("spotify.audio_analysis('" + newTrackID + "')")).has("sections"))
+				else if ((sections = m_spotify.exec("spotify.audio_analysis('" + newTrackID + "')", false)).has("sections"))
 				{
 					sections = sections["sections"];
 					std::ofstream file (secPath);

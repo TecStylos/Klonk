@@ -46,7 +46,7 @@ public:
 	const Response& operator[](const std::string& key) const;
 private:
 	static Token peekToken(const char* str);
-        static const char* readToken(const char* str, Token* pToken);
+    static const char* readToken(const char* str, Token* pToken);
 private:
 	uint64_t m_numRead = 0;
 	ResponseType m_type = ResponseType::None;
