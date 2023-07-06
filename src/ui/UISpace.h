@@ -11,7 +11,7 @@ public:
 	ElemType* addElement(int x, int y, Args... args);
 	void remElement(UIElement* pElem);
 private:
-	std::set<UIElement*> m_elements;
+	std::vector<UIElement*> m_elements;
 };
 
 template <class ElemType, typename... Args>
@@ -19,6 +19,6 @@ ElemType* UISpace::addElement(int x, int y, Args... args)
 {
 	static_assert(std::is_base_of<UIElement, ElemType>::value, "ElemType not derived from BaseClass");
 	ElemType* pElem = new ElemType(m_x + x, m_y + y, args...);
-	m_elements.insert(pElem);
+	m_elements.push_back(pElem);
 	return pElem;
 }

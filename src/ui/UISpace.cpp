@@ -1,5 +1,7 @@
 #include "UISpace.h"
 
+#include <algorithm>
+
 UISpace::UISpace(int x, int y, int w, int h)
 	: UIElement(x, y, w, h)
 {
@@ -47,5 +49,6 @@ UISpace::UISpace(int x, int y, int w, int h)
 
 void UISpace::remElement(UIElement* pElem)
 {
-	m_elements.erase(pElem);
+	std::remove(m_elements.begin(), m_elements.end(), pElem);
+	delete pElem;
 }
