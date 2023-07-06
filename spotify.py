@@ -62,13 +62,13 @@ if __name__ == "__main__":
 			print(err)
 			result = str(err)
 
-		if not isinstance(result, (list, dict, int, bool, type(None))):
-			result = str(result)
-
-		if isinstance(result, str):
-			result = result.replace("'", "\"")
-			result = f"'{result}'"
-
-		#print(f"---- RESULT ----\n{result}\n----------------")
 		if (not ignoreResponse):
+			if not isinstance(result, (list, dict, int, bool, type(None))):
+				result = str(result)
+
+			if isinstance(result, str):
+				result = result.replace("'", "\"")
+				result = f"'{result}'"
+
+			#print(f"---- RESULT ----\n{result}\n----------------")
 			sendMessage(str(result))
