@@ -12,6 +12,8 @@ add_executable(
 	"src/stb/stb_image.cpp"
 	"src/stb/stb_image_write.cpp"
 
+	"src/util/TimeInMs.cpp"
+
 	"src/ui/UserInterface.cpp"
 	"src/ui/UISpace.cpp"
 	"src/ui/UIImage.cpp"

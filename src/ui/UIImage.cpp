@@ -25,3 +25,10 @@ Image& UIImage::getImage()
 {
 	return m_img;
 }
+
+void UIImage::setImage(Image& img)
+{
+	m_img = img;
+	width() = img.width();
+	height() = img.height();
+}

@@ -9,6 +9,7 @@
 #include "KlonkError.h"
 #include "uibackend/GenTextImage.h"
 #include "ui/MakeHomeButton.h"
+#include "util/TimeInMs.h"
 
 #define SEEK_PREV_DELAY 3000
 
@@ -35,13 +36,7 @@ Pixel getAvgColor(const Image& img)
 	return c / Pixel(float(img.width() * img.height()));
 }
 
-uint64_t timeInMs()
-{
-	timeval t;
-	if (gettimeofday(&t, 0))
-		throw KlonkError("Unable to gettimeofday!");
-	return t.tv_sec * 1000 + t.tv_usec / 1000;
-}
+
 
 std::string msTimeToString(uint64_t ms)
 {

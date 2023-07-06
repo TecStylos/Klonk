@@ -11,6 +11,7 @@ private:
 	void initCallbacks();
 public:
 	Image& getImage();
+	void setImage(Image& img);
 protected:
 	Image m_img;
 };
