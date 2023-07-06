@@ -11,6 +11,7 @@
 struct Pixel
 {
     float r, g, b;
+    bool transparent = false;
 public:
     Pixel() : Pixel(0.0f) {}
     Pixel(float c) : Pixel(c, c, c) {}
@@ -19,7 +20,7 @@ public:
     operator float() const;
 public:
     void toCharArray(uint8_t* pixelData) const;
-    static Pixel fromCharArray(const uint8_t* pixelData);
+    static Pixel fromCharArray(const uint8_t* pixelData, int nChannels);
 };
 
 Pixel& operator+=(Pixel& left, const Pixel& right);
@@ -67,12 +68,14 @@ inline void Pixel::toCharArray(uint8_t* pixelData) const
     pixelData[2] = b * 255;
 }
 
-inline Pixel Pixel::fromCharArray(const uint8_t* pixelData)
+inline Pixel Pixel::fromCharArray(const uint8_t* pixelData, int nChannels)
 {
     Pixel pix;
     pix.r = float(pixelData[0]) / 255;
     pix.g = float(pixelData[1]) / 255;
     pix.b = float(pixelData[2]) / 255;
+    if (nChannels == 4)
+        pix.transparent = (pixelData[3] <= 127);
     return pix;
 }
 

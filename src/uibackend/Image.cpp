@@ -44,14 +44,11 @@ Image::Image(const std::string& filename)
     if (!data)
         throw std::runtime_error("Unable to load file!");
 
-    //if (nChannels != 3)
-    //    throw std::runtime_error("Wrong channel count!");
-
     m_buffer.clear();
     m_buffer.reserve(m_width * m_height);
 
     for (int i = 0; i < m_width * m_height; ++i)
-        m_buffer.push_back(Pixel::fromCharArray((const uint8_t*)data + i * nChannels));
+        m_buffer.push_back(Pixel::fromCharArray((const uint8_t*)data + i * nChannels, nChannels));
 
     stbi_image_free(data);
 }

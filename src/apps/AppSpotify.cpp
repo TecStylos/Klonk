@@ -169,6 +169,19 @@ AppSpotify::AppSpotify(Framebuffer& fb)
 			APP_SPOTIFY_LOCKED(app.m_accentColor = color);
 		}
 	);
+	Image pauseImg("./resource/overlay-pause.png");
+	auto uiTrackViewPause = uiTrackView->addElement<UIImage>((uiTrackView->width() - pauseImg.width()) / 2, (uiTrackView->height() - pauseImg.height()) / 2, pauseImg);
+	uiTrackViewPause->setCbOnUpdate(
+		[](UIElement* pElem, void* pData)
+		{
+			DECL_APP_SPOTIFY(pData);
+
+			if (app.m_isPlaying)
+				pElem->hide();
+			else
+				pElem->show();
+		}
+	);
 
 	auto uiSeekbar = m_uiRoot.addElement<UIElement>(20, 215, 280, 12);
 	uiSeekbar->setCbOnRender(

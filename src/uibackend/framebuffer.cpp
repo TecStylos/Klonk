@@ -92,7 +92,12 @@ void Framebuffer::drawImage(int x, int y, const Image& img)
 
         for (int oy = by; oy < h; ++oy)
                 for (int ox = bx; ox < w; ++ox)
-                        set(x + ox, y + oy, img.getNC(ox, oy));
+                {
+                        auto& c = img.getNC(ox, oy);
+                        if (c.transparent)
+                                continue;
+                        set(x + ox, y + oy, c);
+                }
 }
 
 int Framebuffer::getIndex(int x, int y) const
