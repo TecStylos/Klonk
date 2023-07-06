@@ -75,22 +75,25 @@ AppSpotify::AppSpotify(Framebuffer& fb)
 			{
 				static const int scrollSpeed = 2;
 				static uint64_t lastScrollChange = timeInMs();
+				static const uint64_t scrollDelay = 1000;
 
-				if (pElem->posX() > 16)
+				uint64_t now = timeInMs();
+
+				if (pElem->posX() > 16 && scrollDirection != -1)
 				{
 					scrollDirection = -1;
-					pElem->posX() = 16;
-					lastScrollChange = timeInMs();
+					lastScrollChange = now;
 				}
-				else if (pElem->posX() + pElem->width() < app.m_uiRoot.width() - 16)
+				else if (pElem->posX() + pElem->width() < app.m_uiRoot.width() - 16 && scrollDirection != 1)
 				{
 					scrollDirection = 1;
-					pElem->posX() = app.m_uiRoot.width() - 16 - pElem->width();
-					lastScrollChange = timeInMs();
+					lastScrollChange = now;
 				}
 
-				if (timeInMs() - lastScrollChange > 1000)	
+				if (now - lastScrollChange > scrollDelay)
+				{
 					pElem->posX() += scrollDirection * scrollSpeed;
+				}
 			}
 		}
 	);
