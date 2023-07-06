@@ -38,8 +38,8 @@ Image::Image(int width, int height)
 
 Image::Image(const std::string& filename)
 {
-    int nChannels;
-    auto data = stbi_load(filename.c_str(), &m_width, &m_height, &nChannels, 4);
+    int nChannels = 4;
+    auto data = stbi_load(filename.c_str(), &m_width, &m_height, nullptr, nChannels);
 
     if (!data)
         throw std::runtime_error("Unable to load file!");
