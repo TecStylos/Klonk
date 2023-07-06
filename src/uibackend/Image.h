@@ -10,12 +10,13 @@
 
 struct Pixel
 {
-    float r, g, b;
-    bool transparent = false;
+    float r, g, b, a;
 public:
     Pixel() : Pixel(0.0f) {}
-    Pixel(float c) : Pixel(c, c, c) {}
-    Pixel(float r, float g, float b) : r(r), g(g), b(b) {}
+    Pixel(float c) : Pixel(c, c) {}
+    Pixel(float c, float a) : Pixel(c, c, c, a) {}
+    Pixel(float r, float g, float b) : r(r), g(g), b(b), a(1.0f) {}
+    Pixel(float r, float g, float b, float a) : r(r), g(g), b(b), a(a) {}
 public:
     operator float() const;
 public:
@@ -74,8 +75,7 @@ inline Pixel Pixel::fromCharArray(const uint8_t* pixelData, int nChannels)
     pix.r = float(pixelData[0]) / 255;
     pix.g = float(pixelData[1]) / 255;
     pix.b = float(pixelData[2]) / 255;
-    if (nChannels == 4)
-        pix.transparent = (pixelData[3] <= 127);
+    pix.a = (nChannels == 4) ? float(pixelData[3]) / 255 : 1.0f;
     return pix;
 }
 
@@ -84,6 +84,7 @@ inline Pixel& operator+=(Pixel& left, const Pixel& right)
     left.r += right.r;
     left.g += right.g;
     left.b += right.b;
+    left.a += right.a;
     return left;
 }
 inline Pixel& operator-=(Pixel& left, const Pixel& right)
@@ -91,6 +92,7 @@ inline Pixel& operator-=(Pixel& left, const Pixel& right)
     left.r -= right.r;
     left.g -= right.g;
     left.b -= right.b;
+    left.a -= right.a;
     return left;
 }
 inline Pixel& operator*=(Pixel& left, const Pixel& right)
@@ -98,6 +100,7 @@ inline Pixel& operator*=(Pixel& left, const Pixel& right)
     left.r *= right.r;
     left.g *= right.g;
     left.b *= right.b;
+    left.a *= right.a;
     return left;
 }
 inline Pixel& operator/=(Pixel& left, const Pixel& right)
@@ -105,6 +108,7 @@ inline Pixel& operator/=(Pixel& left, const Pixel& right)
     left.r /= right.r;
     left.g /= right.g;
     left.b /= right.b;
+    left.a /= right.a;
     return left;
 }
 inline Pixel operator+(Pixel left, const Pixel& right)

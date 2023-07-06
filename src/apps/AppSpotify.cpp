@@ -183,6 +183,7 @@ AppSpotify::AppSpotify(Framebuffer& fb)
 				pElem->show();
 		}
 	);
+	uiTrackViewPause->hide();
 
 	auto uiSeekbar = m_uiRoot.addElement<UIElement>(20, 215, 280, 12);
 	uiSeekbar->setCbOnRender(
