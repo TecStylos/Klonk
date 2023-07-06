@@ -36,8 +36,6 @@ Pixel getAvgColor(const Image& img)
 	return c / Pixel(float(img.width() * img.height()));
 }
 
-
-
 std::string msTimeToString(uint64_t ms)
 {
 	auto sec = ms / 1000;

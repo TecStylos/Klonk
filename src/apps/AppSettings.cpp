@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <cstring>
 
+#include "util/TimeInMs.h"
 #include "uibackend/GenTextImage.h"
 
 std::string getIPAddress()
@@ -13,7 +14,7 @@ std::string getIPAddress()
     int sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
 
     if (sock < 0)
-        return "";
+        return "No IP found";
 
     struct ifreq ifr{};
     strcpy(ifr.ifr_name, "wlan0");
@@ -33,16 +34,24 @@ AppSettings::AppSettings(Framebuffer& fb)
 
 const char* AppSettings::onUpdate()
 {
-    static UIImage* ipImage = m_uiRoot.addElement<UIImage>(10, 30, genTextImage("IP: ", 24));
-    static std::string oldIP = getIPAddress();
+    static UIImage* ipImage = m_uiRoot.addElement<UIImage>(10, 48, genTextImage("IP: ", 24));
+    static std::string oldIP = "";
 
-    std::string newIP = getIPAddress();
+    static uint64_t lastUpdate = 0;
+    uint64_t now = timeInMs();
 
-    if (oldIP != newIP)
+    if (now - lastUpdate > 10000)
     {
-        oldIP = newIP;
-        auto newImg = genTextImage("IP: " + newIP, 24);
-        ipImage->setImage(newImg);
+        lastUpdate = now;
+
+        std::string newIP = getIPAddress();
+
+        if (oldIP != newIP)
+        {
+            oldIP = newIP;
+            auto newImg = genTextImage("IP: " + newIP, 24);
+            ipImage->setImage(newImg);
+        }
     }
 
     return Application::onUpdate();
