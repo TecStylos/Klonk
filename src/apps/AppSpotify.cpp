@@ -61,15 +61,14 @@ AppSpotify::AppSpotify(Framebuffer& fb)
 			if (oldName != newName)
 			{
 				oldName = newName;
-				auto& img = ((UIImage*)pElem)->getImage();
-				img = genTextImage(newName, 18);
+
+				Image img = genTextImage(newName, 18);
+				((UIImage*)pElem)->setImage(img);
 
 				scrollDirection = -1;
 
-				pElem->posX() = (img.width() > app.m_uiRoot.width()) ? 16 : ((app.m_uiRoot.width() - img.width()) / 2);
-				pElem->posY() = 22 - img.height() / 2;
-				pElem->width() = img.width();
-				pElem->height() = img.height();
+				pElem->posX() = (pElem->width() > app.m_uiRoot.width()) ? 16 : ((app.m_uiRoot.width() - pElem->width()) / 2);
+				pElem->posY() = 22 - pElem->height() / 2;
 			}
 
 			if (pElem->width() > app.m_uiRoot.width())
@@ -78,8 +77,8 @@ AppSpotify::AppSpotify(Framebuffer& fb)
 					scrollDirection = -1;
 				else if (pElem->posX() + pElem->width() < app.m_uiRoot.width() - 16)
 					scrollDirection = 1;
-				else
-					pElem->posX() += scrollDirection * 3;
+					
+				pElem->posX() += scrollDirection * 3;
 			}
 		}
 	);
