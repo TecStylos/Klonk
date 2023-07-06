@@ -169,7 +169,8 @@ AppSpotify::AppSpotify(Framebuffer& fb)
 			APP_SPOTIFY_LOCKED(app.m_accentColor = color);
 		}
 	);
-	Image pauseImg("./resource/overlay-pause.png");
+	Image pauseImg(64, 64);
+	pauseImg.downscaleFrom(Image("./resource/overlay-pause.png"));
 	auto uiTrackViewPause = uiTrackView->addElement<UIImage>((uiTrackView->width() - pauseImg.width()) / 2, (uiTrackView->height() - pauseImg.height()) / 2, pauseImg);
 	uiTrackViewPause->setCbOnUpdate(
 		[](UIElement* pElem, void* pData)
