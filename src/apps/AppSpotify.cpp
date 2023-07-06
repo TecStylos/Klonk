@@ -138,7 +138,6 @@ AppSpotify::AppSpotify(Framebuffer& fb)
 				return false;
 
 			app.m_spotify.exec(app.m_isPlaying ? "spotify.pause_playback()" : "spotify.start_playback()");
-			app.m_isPlaying = !app.m_isPlaying;
 
 			app.initInstantUpdate();
 
@@ -410,7 +409,8 @@ void AppSpotify::threadFunc()
 			response.has("item.duration_ms") &&
 			response.has("item.name") &&
 			response.has("is_playing") &&
-			response.has("device.volume_percent"))
+			response.has("device.volume_percent") &&
+			!m_updateNow)
 		{
 			auto& newTrackID = response["item.id"].getString();
 			bool trackIDChanged;

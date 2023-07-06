@@ -32,7 +32,7 @@ private:
 	std::atomic_int m_volume = 100;
 	mutable std::mutex m_mtx;
 	std::condition_variable m_condVar;
-	bool m_updateNow = false;
+	std::atomic_bool m_updateNow = false;
 	Pixel m_accentColor = { 0.3f };
 	std::map<int, int> m_trackSections;
 };
