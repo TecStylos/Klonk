@@ -70,5 +70,5 @@ if __name__ == "__main__":
 			result = f"'{result}'"
 
 		#print(f"---- RESULT ----\n{result}\n----------------")
-		if (not ignoreResponse)
+		if (not ignoreResponse):
 			sendMessage(str(result))
