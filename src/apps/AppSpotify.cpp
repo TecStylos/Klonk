@@ -474,7 +474,7 @@ void AppSpotify::threadFunc()
 			std::unique_lock lock(m_mtx);
 			m_condVar.wait_for(
 				lock,
-				std::chrono::seconds(2),
+				std::chrono::seconds(1),
 				[&]()
 				{
 					if (!m_updateNow)
