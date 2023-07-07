@@ -73,7 +73,7 @@ AppSpotify::AppSpotify(Framebuffer& fb)
 
 			if (pElem->width() > app.m_uiRoot.width())
 			{
-				static const int scrollSpeed = 2;
+				static const int scrollSpeed = 3;
 				static uint64_t lastScrollChange = timeInMs();
 				static const uint64_t scrollDelay = 1000;
 
